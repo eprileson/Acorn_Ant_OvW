@@ -203,7 +203,7 @@ bt_df <- bt_model$emmeans %>%
   as.data.frame()
 
 #make upper and lower SEs (manually calculated from summary of emmeans)
-upper.SEc <- c(562.1, 579.8)
+upper.SEc <- c(562.12, 579.89)
 lower.SEc <- c(383.9, 384.2)
 
 #graph w/ emmeans model (to get error bars that match accurately from the backtransformed model)
