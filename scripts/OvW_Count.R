@@ -3,7 +3,7 @@
 ##demographic change / survival count post winter ##
 
 #read in data set
-setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/CTmax")
+setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/scripts")
 count <- read.csv("OvW_count.csv")
 head(count)
 
@@ -14,11 +14,13 @@ class(count$Source.pop)
 levels(count$Source.pop)
 #R doesn't choose End first
 
-
 #adjust collection date to col_season factor
-library(lubridate)
 count$Collection_date <- as.factor(count$Collection_date)
 class(count$Collection_date) #changed to date that R recognizes
+
+#change name to col season
+colnames(count) <- c("Colony_ID", "Source.pop", "Worker.start", "Worker.end", "Brood_count", "Col_Season")
+head(count)
 
 #create new column of worker demographic change, calculate change in pop. Start - End
 count$Worker.loss <- (count$Worker.start - count$Worker.end) #make worker loss positive for count
@@ -44,9 +46,14 @@ colnames(count1) <- c("ColonyID", "Source.pop", "Beginning", "End", "Brood_count
 #make source pop a factor & check levels
 count1$Source.pop <- as.factor(count1$Source.pop)
 levels(count1$Source.pop)
-#change col date to date / POSix vector
-count1$Collection_date <- ymd(count1$Collection_date)
-class(count1$Collection_date)
+
+#adjust collection date to col_season factor
+count1$Collection_date <- as.factor(count1$Collection_date)
+class(count$Collection_date) #changed to date that R recognizes
+
+#change name to col season
+colnames(count1) <- c("Colony_ID", "Source.pop", "Beginning", "End", "Brood_count", "Col_Season")
+head(count1)
 
 #pivot the data longer so that we can show the change over time with the data set
 library(magrittr)
@@ -114,12 +121,12 @@ surv.mod <- glmmTMB(Worker.loss ~ Source.pop + (1 | ColonyID) + (1 | Collection_
                     family = poisson(link = "log"))
 
 #FINAL MODEL 2: Proportional Worker Loss
-prop.surv <- glmmTMB(worker.prop ~ Source.pop + (1 | ColonyID) + (1 | Collection_date),
+prop.surv <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                     data=count)
 #model w/ quasi binomial - doesn't work with glmmTMB
 library(lme4)
 library(MASS)
-prop.surv1 <- glmmTMB(worker.prop ~ Source.pop + (1 | ColonyID) + (1 | Collection_date),
+prop.surv1 <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                       weights= Worker.start, family=binomial, data=count)
 
 #FINAL MODEL 3: Colony size change. +  beginning
@@ -147,7 +154,7 @@ visreg(prop.surv)
 ##Diagnostics: warning msgs for models - show model convergence problem w/ small eigen value problems
 diagnose(end.mod) #removed the interaction effect due to extremely large SD
 
-diagnose(prop.surv) 
+diagnose(prop.surv1) 
 
 library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
 simOutput3 <- simulateResiduals(fittedModel = prop.surv, plot = F)
@@ -161,7 +168,7 @@ testOutliers(simOutput3, margin = c("both"), type = c("bootstrap"), plot = T) #o
 summary(surv.mod)
 summary(beg.mod) #pop start - Urban = 61.826, rural = 45.25
 summary(end.mod) #pop end - Urban = 14.04, rural = 12.21
-summary(prop.surv)
+summary(prop.surv1)
 summary(change.mod)
 
 # log lik statistic tests for model significance
@@ -190,7 +197,7 @@ change.em
 #
 #Make follow up plot of modeled results
 library(ggeffects)
-prop.graph <- ggpredict(prop.surv, terms = c("Source.pop"), 
+prop.graph <- ggpredict(prop.surv1, terms = c("Source.pop"), 
                         type = "fe", allow.new.levels = TRUE,ci.lvl = 0.68, width=0.05, colour = my_colors3)
 plot(prop.graph) #basic modeled plot
 
@@ -220,7 +227,7 @@ lower.SEd <- c(7.91, 7.51)
 
 #for proportions - use summary data since not on Log scale
 
-prop_em <- emmeans(prop.surv, pairwise ~ Source.pop, transform = "response", adjust = "fdr")
+prop_em <- emmeans(prop.surv1, pairwise ~ Source.pop, transform = "log", adjust = "fdr")
 upper.SEp <- c(0.738, 0.8321)
 lower.SEp <- c(0.674, 0.7679)
 

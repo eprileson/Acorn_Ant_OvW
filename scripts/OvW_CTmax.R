@@ -20,7 +20,7 @@ library(puniform)
 library(knitr) 
 library(readxl)
 
-setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/CTmax")
+setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/CTmax")
 
 #read in data, take a look
 ctmax <- read.csv("OvW_ctmax.csv", header = TRUE)
@@ -40,7 +40,11 @@ ctmax$Worker_count <- as.numeric(ctmax$Worker_count) #change to numeric
 
 #change date to factor for three cohorts
 ctmax$Collection_date <- as.factor(ctmax$Collection_date)
-class(ctmax$Collection_date) #change date from char to date using lubridate
+levels(ctmax$Collection_date) #change date from char to date using lubridate
+
+#change name to col season
+colnames(ctmax) <- c("Colony_ID", "Ind_ant", "Site", "Date", "CTmax_C", "Treatment", "Col_Season", "Worker_count", "Winter_days")
+head(ctmax)
 
 #remove colony 2318, 7783, and 3538 from analysis (sample size too small, <= 5)
 ctmax <- ctmax[-c(11:12,216:219,345:347),] #2318, #3538, #7783
@@ -58,11 +62,8 @@ boxplot(CTmax_C ~ Treatment, data = ctmax)  #wide variance for both, but not muc
 #calculate means of ind colonies to compare
 #then aggregate the means by their treatment (ie. rural or urban) and include 
 #the other variables - use this for data viz to show variance of colony avgs
-col_means <- aggregate(CTmax_C ~ Colony_ID + Treatment + Site + Collection_date,
+col_means <- aggregate(CTmax_C ~ Colony_ID + Treatment + Site + Col_Season,
                         data = ctmax, mean)
-#change date for the means
-col_means$Collection_date <- ymd(col_means$Collection_date)
-class(col_means$Collection_date)
 
 #round the colmeans to nearest 0.5
 library(plyr)
@@ -110,7 +111,7 @@ mod2 <- glmmTMB(CTmax_C ~ Treatment + (1 | Colony_ID) + (1 | Collection_date:Tre
                 data = ctmax) 
 
 #NEW FINAL MODEL with new random effect of col_season instead of col_date
-mod4 <- glmmTMB(CTmax_C ~ Treatment + (1 | Colony_ID) + (1 | Collection_date),
+mod4 <- glmmTMB(CTmax_C ~ Treatment + (1 | Colony_ID) + (1 | Col_Season),
                 data = ctmax)
 
 #plot model to see if matches expl graphics
@@ -142,7 +143,7 @@ qqnorm(residuals(mod4))
 #call w /summary 
 
 summary(mod4) #urban est = 1.2796 deg C higher than Rural; SE = 0.5124
-VarCorr(mod2)
+
 library(car)
 #hypothesis testing using analysis of deviance
 Anova(mod4, type = "III")  #chisq - Treatment = 6.24, p = 0.013, .ns.
@@ -163,9 +164,9 @@ ct_df <- ct_mod$emmeans %>%
   confint() %>%
   as.data.frame()
 
-#make upper and lower SEs; manually calculated from emmeans
-upper.SE <- c(45.707, 46.256)
-lower.SE <- c(44.893, 45.544)
+#make upper and lower SEs; manually calculated from emmeans from mod4
+upper.SE <- c(45.468, 46.772)
+lower.SE <- c(44.332, 45.628)
 
 #make plot with the emmeans to get correct SEs that have been backtransformed
 ## FINAL PLOT = ggemmeans_final.jpeg in Box
@@ -175,7 +176,7 @@ ggplot(ct_df, aes(x = Treatment, y= emmean))+
   geom_point(colour = my_colors2, size = 7)+
   geom_errorbar(aes(ymin = lower.SE, ymax = upper.SE), #uses upper and lower CI
                 width=0.05, colour = my_colors2, fun.args = list(mult = 1))+
-  labs(y = "Critical Thermal Maximum (°C)", x = "Source Population")+
+  labs(y = "Critical Thermal Maximum (?C)", x = "Source Population")+
   theme_classic()+
   theme(
     title = element_text(size = 14),
