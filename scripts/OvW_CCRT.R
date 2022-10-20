@@ -45,7 +45,7 @@ head(ccrt)
 
 #change date to ymd format for R
 ccrt$Date <- ymd(ccrt$Date)
-ccrt$Collection_date <- ymd(ccrt$Collection_date) #only if we don't use factor for date
+#ccrt$Collection_date <- ymd(ccrt$Collection_date) #only if we don't use factor for date
 
 #change ccrt to seconds, change name, round digits to nearest whole #
 ccrt$CCRT_sec <- ccrt$CCRT_min*60
@@ -203,11 +203,11 @@ bt_df <- bt_model$emmeans %>%
   as.data.frame()
 
 #make upper and lower SEs (manually calculated from summary of emmeans)
-upper.SEc <- c(562.12, 579.89)
-lower.SEc <- c(383.9, 384.2)
+upper.SEc <- c(644.2, 649.6)
+lower.SEc <- c(507.8, 504.4)
 
 #graph w/ emmeans model (to get error bars that match accurately from the backtransformed model)
-ggplot(bt_df, aes(x = Treatment, y = rate))+
+ggplot(bt_df, aes(x = Treatment, y = response))+
   geom_point(colour = my_colors1, size = 7,
              stat = 'summary', fun.y = 'mean')+
   geom_errorbar(aes(ymin = lower.SEc, ymax = upper.SEc), #uses upper and lower CI
