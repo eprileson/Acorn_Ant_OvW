@@ -42,7 +42,7 @@ for(i in 1:dim(dat_ovw.3c)[1]) { #for every row in the data set,
 }
 
 #check that the two columns have the merged gillibrator data
-head(dat_ovw.3c)
+dat_ovw.3c[1:25,]
 
 #install / load packages for reading exp files from Sable ExpeData
 install.packages("remotes")
@@ -54,7 +54,7 @@ library(SableBase)
 # list all files in the folder / from the working dir
 files = dir(pattern="exp") #find all files in directory that have "exp"
 
-files = files[files %in% c(dat_ovw.3c$MR4_name, dat_ovw.3c$MR10_file)==TRUE]
+files = files[files %in% c(dat_ovw.3c$MR4_name, dat_ovw.3c$MR10_name)==TRUE] #search files only in these columns
 
 storage=c()
 
@@ -78,7 +78,7 @@ for (i in 1:length(files)) { #for every row in files / each file
     
     if(check.length >=500) {
       
-      # sscf.sub$fracflow = sscf.sub$fracCO2*500 # NEED TO REPLACE W/ ACTUAL FLOW RATE
+      # sscf.sub$fracflow = sscf.sub$fracCO2*500 #
       sscf.sub$fracCO2 = sscf.sub$CO2.ANIMAL/1000000
 
       flowrate.4 = match(dat_ovw.3c$MR4_name, files[i])
@@ -95,7 +95,7 @@ for (i in 1:length(files)) { #for every row in files / each file
       sscf.sub$fracflow = sscf.sub$fracCO2*flowrate        
       
       # Then if you average the last 5 mins of each butterflies fracflow you should get mean CO2ML/min for each of your samples
-      # This should be the last 300 readings since there are 10 minutes total in the trial?
+      # This should be the last 300 readings since there are 10 minutes total in the trial
       
       sscf.summary = mean(sscf.sub$fracflow[300:600])
 
@@ -105,7 +105,7 @@ for (i in 1:length(files)) { #for every row in files / each file
       Slopes <- rollapplyr(zoo(sscf.sub), 300, Coef, by.column = FALSE)
       start.index <- which.min(abs(Slopes$index))[1]
       sscf.summaryRA <- mean(sscf.sub$fracflow[start.index:(start.index+300)])
-      
+
     } else {
       sscf.summary<-NA
       sscf.summaryRA<-NA
@@ -121,26 +121,26 @@ for (i in 1:length(files)) { #for every row in files / each file
 #new data frame w/ mean MR data, exp file
 dat.sum<-data.frame(MeanMR=as.numeric(as.character(storage[,1])), MeanMR_RA=as.numeric(as.character(storage[,2])), ChamberIndex=as.numeric(as.character(storage[,3])), ExpeDataFile=storage[,4], DataLength=storage[,5], StartIndex=storage[,6])
 
-head(dat.sum)
+dat.sum[1:27,]
 
 #make new csv file w/ mean MR data
 setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/MetabolicRate/Eric_OvW")
-write.csv(dat.sum, "AA_MR_Summary_Stats.csv")
+write.csv(dat.sum, "AA_MR_Summary_Stats.new.csv")
 
 
 setwd("C:/Users/sarah/Box/DiamondLabResearch/Research/VCardui_Ontogeny_2021/SED_Analyses")
 
 # write.csv(dat.sum, "VCB_MR_Summary_Stats.csv")
-#make new column combines data file anme and chamber index #
+#make new column combines data file and and chamber index #
 dat.sum$merge.index<-paste(dat.sum$ExpeDataFile, dat.sum$ChamberIndex, sep="_")
 
 dat_ovw.3c<-read.csv("AA_labels_edits.csv", header=T)
 head(dat_ovw.3c)
 dat_ovw.3c4 <-dat_ovw.3c[,c(1:9)]
-dat_ovw.3c$MRTestTemp <-rep(20, times=dim(dat_ovw.3c4)[1])
+dat_ovw.3c$MRTestTemp <-rep(4, times=dim(dat_ovw.3c4)[1])
 colnames(dat_ovw.3c4) <-recode(colnames(dat_ovw.3c4), "'MR4_file'='MR_file';'MR4_name'='MR_name'")
 dat_ovw.3c10 <-dat_ovw.3c[,c(1:9)]
-dat_ovw.3c$MRTestTemp<-rep(30, times=dim(dat_ovw.3c10)[1])
+dat_ovw.3c$MRTestTemp<-rep(10, times=dim(dat_ovw.3c10)[1])
 colnames(dat_ovw.3c10)<-recode(colnames(dat_ovw.3c10), "'MR10_file'='MR_file';'MR10_name'='MR_name'")
 
 #merge the two sets so that the 10 and 4 temp tests are merged in one file column
@@ -158,24 +158,363 @@ write.csv(at.short, "AA_MR_cases.csv")
 
 ##################################################################
 ##################################################################
+## MR data analysis - 
+setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/MetabolicRate/Eric_OvW")
+AA_MR <- read.csv("AA_MR_Summary_Stats.csv", header = TRUE)
+head(AA_MR)
+
+###Part 2: data wrangling continued
+#remove colonies not tested in CCRT
+AA_MR <- AA_MR[-c(7,15,38,44,64,71,120,126),]
+
+#correct for baseline factor: subtract baseline chamber 8 from colony meanMRs
+#place in new column = Cor_SumMR
+AA_MR$Cor_SumMR <- 
+#done in spreadsheet;
+
+#change source pop to factor, check levels for R and U
+AA_MR$Source.pop <- as.factor(AA_MR$Source.pop)
+levels(AA_MR$Source.pop)
+AA_MR$Collection_date <- as.factor(AA_MR$Collection_date)
+
+#change temp to factor
+AA_MR$Test.Temp <- as.factor(AA_MR$Test.Temp)
+class(AA_MR$Test.Temp)
+levels(AA_MR1$Test.Temp)
+
+#change date to class that R can use
+library(lubridate)
+AA_MR$Collection_date <- ymd(AA_MR$Collection_date)
+class(AA_MR$Collection_date) #change date from char to date using lubridate or as.Date
+
+#remove NAs from the dataset; note, this removes the chamber 8 control tubes
+AA_MR1 <- AA_MR[!(AA_MR$ChamberIndex ==8 | AA_MR$Colony_mass == 'NA'),]
+#check
+AA_MR1[1:20,]
+head(AA_MR1)
+
+#log transform MR and colony mass data (don't do for Q10 data)
+AA_MR1$Log.10MeanMR <- log10(AA_MR1$MeanMR)
+AA_MR1$Log.10Colony_mass <- log10(AA_MR1$Colony_mass)
+
+#calculate means for CO2 at both temps and pops (data = 1st arg, subset by logical arg = 2nd arg, 3rd arg = cols to keep)
+MR_avg <- subset(AA_MR1, Test.Temp == 10, select = c(Log.10MeanMR, Test.Temp, Source.pop))
+MR_avg2 <- subset(MR_avg, Source.pop == "Urban", select = c(Log.10MeanMR, Test.Temp, Source.pop)) #for rural @4 deg
+MR_avg2[1:10,] #check
+mean(MR_avg2$Log.10MeanMR)
+
+#Part 3: exploratory graphics
+#
+
+
+#basic graph to show trend of mass on mean MR w/ source pop
+#removed NA's using the notation of only including non-NAs in the dataset (see first ggplot arg)
+library(ggplot2)
+ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Log.10MeanMR, color = Source.pop))+
+  geom_point()+
+  geom_smooth(method = "lm", se = TRUE, level = 0.95)+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  facet_wrap(~Test.Temp)+
+  theme_classic()+
+  labs(y = "Mean CO2 Log 10 (ppm)", x = "Colony Mass Log 10 (grams)", color = "Source Population")+
+  theme_classic()+
+  theme(
+    title = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10)
+  )
+
+ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Test.Temp, y = Log.10MeanMR, color = Source.pop))+
+  geom_point(colors = my_colorsMR, size = 7, stat = 'summary', fun.y = 'mean')+
+  geom_errorbar(stat = 'summary', fun.data = 'mean_se', 
+                width=0.05, fun.args = list(mult = 1))+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  theme_classic()
+
+#basic plot to show Q10s
+library(ggplot2)
+ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Q10, color = Source.pop))+
+  geom_point()+
+  geom_smooth(method = "lm", se = TRUE, level = 0.68)+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  theme_classic()+
+  labs(y = "Q10 Reaction Rate", x = "Colony Mass (Log grams)", color = "Population")+
+  ggtitle('Q10 Reaction Rate Across Source Population')+
+  theme_classic()+
+  theme(
+    title = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10)
+  )
+
+
+#mean x values for segments
+# y1 (rural / 4 deg = -3.679414)
+# y2 (rural / 10 deg = -3.585731)
+# y3 (urban / 4 deg = -3.661369)
+# y4 (urban / 10 deg = -3.575597)
+
+#basic plot to show different test temps and mean MR
+library(ggplot2)
+ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Test.Temp, y = Log.10MeanMR, color = Source.pop)) +
+         geom_point(aes(colour = factor(Source.pop)),size = 7, stat = 'summary', fun.y = 'mean') +
+         geom_errorbar(stat = 'summary', fun.data = 'mean_se', 
+                       width=0.05, fun.args = list(mult = 1))+
+         scale_colour_manual(values = c("cadetblue", "darkorange"))+
+         theme_bw()+
+         labs(y = "Mean CO2 Log (ppm)", x = "Test Temp", color = "Source Population")+
+         ggtitle('Metabolic Rate Across Source and Temperatures')+
+         theme_classic()+
+         theme(
+             title = element_text(size = 14),
+             axis.title = element_text(size = 14),
+             axis.text = element_text(size = 10)
+           )
+
+         geom_segment(aes(x = 4, y = -3.679414, xend = 10, yend = -3.585731))+
+           geom_segment(aes(x = 4, y = -3.661369, xend = 10, yend = -3.575597))+
+           
+
+#colors
+my_colorsMR <- c("cadetblue", "darkorange")
+names(my_colorsMR) <- levels(AA_MR1$Source.pop)
+my_colorsMR1 <- c("cadetblue", "darkorange")
+names(my_colorsMR1) <- levels(mr_df$Source.pop)
+
+
+##Part 4: Model Construction
+#Focal Model: MR ~ mass + source*temp
+library(nlme)
+install.packages('TMB', type = 'source')
+library(glmmTMB)
+library(car)
+mod_MR<-lme(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*Test.Temp, random = ~1|Colony_ID, data=AA_MR1)
+
+#FINAL models
+modMR_control <- glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))
+mod_MR1 <- glmmTMB(Q10 ~ Log.10Colony_mass + Source.pop + 
+                     (1 | Colony_ID) + (1 | Collection_date),
+                   data = AA_MR1, family = gaussian(link = "identity"))
+mod_MR2 <- glmmTMB(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*Test.Temp +
+                     (1|Colony_ID)+ (1 | Collection_date), data = AA_MR1)
+fixef(mod_MR1)
+
+###5 Model Diagnostics:
+library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
+
+simOutput4 <- simulateResiduals(fittedModel = mod_MR1, plot = F)
+plot(simOutput4)  #less dispersion, so better family, but deviation still significant
+plotResiduals(simOutput4, form = ctmax$Treatment)
+testOutliers(simOutput4, margin = c("both"), type = c("bootstrap"), plot = T) #outliers are signf. here
+
+
+diagnose(mod_MR2) #error w/ small eigen values and large coefficients detected
+
+#plot basic modeled relationship to see if it matches expl graphics
+library(visreg)
+visreg(mod_MR1)
+
+
+#Part 6: statistical / hypothesis testing
+#summary stats
+library(car)
+summary(mod_MR2)
+Anova(mod_MR2, type="III") #test temp and colony mass are sign. predictors, source pop is not (p = 0.8118)
+
+#Q10 hypothesis test: Does Q10 differ between urban and rural w/ urban having higher Q10 rate?
+summary(mod_MR1) #Q10 model
+Anova(mod_MR1, type = "III") #chisq = 1.4872, P = 0.222656
+
+# Pairwise tests
+library(emmeans)
+#Q10 emmeans test, w/ backtransformation
+Qmests <- emmeans(mod_MR1, pairwise~Log.10Colony_mass + Source.pop, adjust = "tukey")
+summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
+
+##Part 7: Plotting Model Output
+#
+
+#Q10 plot using ggpredict; modeled 
+library(ggeffects)
+plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass", "Source.pop", "Test.Temp"), allow.new.levels = TRUE, ci.lvl = 0.95)
+
+#FINAL PREDICTED mean MR plot w/ raw data avg MR values
+plot(plot_MRmod1, show.title = FALSE)+
+  geom_smooth(method = "lm", stat = "identity", se = TRUE)+
+  geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), inherit.aes = FALSE)+
+  facet_wrap(~Test.Temp, label_parsed(c("4°C", "10 °C")))+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  theme_classic()+
+  labs(y = "Mean Metabolic Rate (Log 10 ppm)", x = "Colony Mass (Log 10 grams)", color = "Source Population")+
+  theme_classic()+
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10)
+  )
+
+library(ggplot2)
+plot_Qmod1 <- ggpredict(mod_MR1, terms = c("Log.10Colony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
+#plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ logMass + Source.pop)
+plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
+  labs(y="Q10 Reaction Rate", x = "Colony Mass Log 10 (grams)", color = "Source Population")+
+  geom_smooth(se = TRUE, method = "lm")+
+  theme_classic()+
+  theme(
+    title = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10)
+  )
+  
+#create emmeans object that works w. ggplot
+library(magrittr)
+mr_df <- mests$emmeans %>%
+  confint() %>%
+  as.data.frame()
+
+ggplot(plot_MRmod1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop))+
+  geom_point()+
+  geom_smooth(method = "lm", stat = "identity", se = TRUE)+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  theme_classic()+
+  labs(y = "Metabolic Rate", x = "Colony Mass (Log 10 grams)", color = "Source Population")+
+  facet_wrap(~Test.Temp)
+  theme_classic()+
+  theme(
+    title = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10)
+  )
+
+#plot basic plot of MR over mass / temp with source pop
+#needs span gas corrections
+plot_modMR2 <- ggpredict(mod_MR2, terms = c("Test.Temp", "Source.pop"))
+
+
+#plot using emmeans to get accurate predicted comparisons
+ggplot(mr_df, aes(x = Test.Temp, y = emmean, color = Source.pop))+
+  geom_point(aes(colour = factor(Source.pop)), size = 5)+
+  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.05)+
+  geom_segment(aes(x = 1, y = -3.675584, xend = 2, yend = -3.581902), color = "cadetblue")+
+  geom_segment(aes(x = 1, y = -3.665092, xend = 2, yend = -3.580440), color = "darkorange")+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  labs(y = "Mean CO2 (Log ppm)", x = "Test Temperature", color = "Source Population")+
+  theme_classic()+
+  theme(
+    title = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10)
+  )
+#models w/ facet of test temp and mass - NEEDS EDITING
+ggplot(mr_df, aes(x = Log.10Colony_mass, y = emmean, color = Source.pop))+
+  geom_point(size = 5)+
+  geom_smooth(method = "lm", se = TRUE, level = 0.68)+
+  facet_wrap(~Test.Temp)+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  labs(y = "Mean CO2 (Log ppm)", x = "Test Temperature", color = "Source Population")+
+  theme_classic()+
+  theme(
+    title = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10)
+  )
+
+
+#plot the modeled relationship of MR from mass and source
+plot(plot_modMR1)+
+  geom_point(aes(x = Source.pop, y = Log.10MeanMR), size = 5, stat = 'summary', fun.y = 'mean', inherit.aes = FALSE)+
+  geom_errorbar(stat = 'summary', fun.data = 'mean_se', 
+                width=0, fun.args = list(mult = 1))
+  labs(y = "Mean CO2 (Log)", x = "Test.Temp")+
+  theme_classic()+
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
+
+  
+
+  
+###### additional ###  
+  
 #Calculating Q10 vals for model + Graphics
-install.packages("respirometry")
-library(respirometry)
-
-AA_MR <- read.csv("AA_MR_cases.csv", header = TRUE)
-
+  install.packages("respirometry")
+  library(respirometry)
+  
+  
 #Evolved MR: for each site origin, what is the response of MR across the urbanization gradient?
-Q10_val <- Q10(R1 = , R2 = , T1 = 4, T2 = 10) #returns Q10; = 
+  Q10_val <- Q10(R1 = , R2 = , T1 = 4, T2 = 10) #returns Q10; = 
+  Q10 calc <- (R1/R2)^(10/R2-R1)
+  
+#for loop to try and calc Q10 and add new column to csv file
 
-
-Q10.vals<- Q10(T_vec=tmp$MRTestTemp, R_vec=tmp$MeanMR)
-#model 1 w/ MR as a function of test temp
-mod<-lm(MeanMR ~ MRTestTemp, data=tmp)
-
-#model 2 with MR as a function of site origin
-mod2 <- lm(MeanMR ~ Site, data = dat1)
-
-
-
-
+  j.indices1 <- unique(AA_MR$Chamberindex) #make object w/ unique rows for each unique chamber from within each file
+  
+  for(j in 1:length(j.indices1)) {
+    
+    if(AA_MR$Test.temp == 4){
+      j = R1
+    }
+    else {
+      R2
+    }
+    R2 <- AA_MR$Test.temp ==10
+    }
+    AA_MR$Q10_val <- Q10(R1 = , R2 = , T1 = 4, T2 = 10)
+    
+    
+    
+  }
+  
+  Q10.vals<- Q10(T_vec=tmp$MRTestTemp, R_vec=tmp$MeanMR)
+  
+  
+  
+#Establish baseline / control level
+  
+  # list all files in the folder
+  files = dir(pattern="exp")
+  
+  files = files[files %in% c(dat_ovw.3c$MR4_name, dat_ovw.3c$MR10_name)==TRUE]
+  
+  
+  pdf("Control_MR_plots_timed.pdf", width=15, height=15)
+  par(mfrow=c(9,8), mar=c(1,1,1,1)) # count of number of files and divide into a grid;  n = 70 files
+  
+  for (i in 1:length(files)) { 
+    
+    # read in files 
+    sscf = read.sscf(files[i])
+    
+    # assign to dataframe object
+    sscf.file = data.frame(sscf, check.names=TRUE)
+    
+    
+    baseline.run = sscf.file[sscf.file$I_O_N==8,]
+    
+    colnames(baseline.run)[3]<-"CO2.ANIMAL"
+    baseline.run$fracCO2 = baseline.run$CO2.ANIMAL/1000000 
+    
+    flowrate.4 = match(dat_ovw.3c$MR4_name, files[i])
+    flowrate.10 = match(dat_ovw.3c$MR10_name, files[i])
+    
+    if(sum(flowrate.20, na.rm=T) >=1 ) {
+      flowrate = dat_ovw.3c$Gilibrator40[which(is.na(flowrate.4)==F)[1]]
+    }
+    
+    if(sum(flowrate.30, na.rm=T) >=1 ) {
+      flowrate = dat_ovw.3c$Gilibrator10[which(is.na(flowrate.10)==F)[1]]
+    }
+    
+    baseline.run$fracflow = baseline.run$fracCO2*flowrate
+    
+    baseline.run$index = as.numeric(which(sscf$I_O_N==8)) 
+    
+    baseline.slope.mod = lm(fracflow ~ index, data=baseline.run)
+    
+    plot(fracflow ~ index, data=baseline.run, type='l')
+    
+    abline(baseline.slope.mod, col="blue", lwd=2)
+  }
+  dev.off()
+  
 
