@@ -159,7 +159,7 @@ write.csv(at.short, "AA_MR_cases.csv")
 ##################################################################
 ##################################################################
 ## MR data analysis - 
-setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/MetabolicRate/Eric_OvW")
+setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/scripts")
 AA_MR <- read.csv("AA_MR_Summary_Stats.csv", header = TRUE)
 head(AA_MR)
 
@@ -172,23 +172,25 @@ AA_MR <- AA_MR[-c(7,15,38,44,64,71,120,126),]
 AA_MR$Cor_SumMR <- 
 #done in spreadsheet;
 
-#change source pop to factor, check levels for R and U
+#change source pop and coldate to factor, check levels for R and U
 AA_MR$Source.pop <- as.factor(AA_MR$Source.pop)
 levels(AA_MR$Source.pop)
 AA_MR$Collection_date <- as.factor(AA_MR$Collection_date)
+
+#change col names to reflect cod date as factor
+colnames(AA_MR) <- c("Sec", "MeanMR", "MeanMR_RA", "Cor_SumMR", "Chamber", "ExpeDataFile",
+                      "DataLength","StartIndex", "Source.pop", "Colony_mass", "Colony_ID",
+                      "Test.Temp","Q10","Col_Season")
+head(AA_MR)
+
 
 #change temp to factor
 AA_MR$Test.Temp <- as.factor(AA_MR$Test.Temp)
 class(AA_MR$Test.Temp)
 levels(AA_MR1$Test.Temp)
 
-#change date to class that R can use
-library(lubridate)
-AA_MR$Collection_date <- ymd(AA_MR$Collection_date)
-class(AA_MR$Collection_date) #change date from char to date using lubridate or as.Date
-
 #remove NAs from the dataset; note, this removes the chamber 8 control tubes
-AA_MR1 <- AA_MR[!(AA_MR$ChamberIndex ==8 | AA_MR$Colony_mass == 'NA'),]
+AA_MR1 <- AA_MR[!(AA_MR$Chamber ==8 | AA_MR$Colony_mass == 'NA'),]
 #check
 AA_MR1[1:20,]
 head(AA_MR1)
@@ -205,7 +207,8 @@ mean(MR_avg2$Log.10MeanMR)
 
 #Part 3: exploratory graphics
 #
-
+hist(AA_MR$Q10) #pretty normal
+hist(AA_MR1$Log.10MeanMR) #pretty good, log transformed approaches normal
 
 #basic graph to show trend of mass on mean MR w/ source pop
 #removed NA's using the notation of only including non-NAs in the dataset (see first ggplot arg)
@@ -293,22 +296,21 @@ mod_MR<-lme(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*Test.Temp, random = ~1
 #FINAL models
 modMR_control <- glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))
 mod_MR1 <- glmmTMB(Q10 ~ Log.10Colony_mass + Source.pop + 
-                     (1 | Colony_ID) + (1 | Collection_date),
+                     (1 | Colony_ID) + (1 | Col_Season),
                    data = AA_MR1, family = gaussian(link = "identity"))
 mod_MR2 <- glmmTMB(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*Test.Temp +
-                     (1|Colony_ID)+ (1 | Collection_date), data = AA_MR1)
-fixef(mod_MR1)
+                     (1|Colony_ID)+ (1 | Col_Season), data = AA_MR1)
 
 ###5 Model Diagnostics:
 library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
 
 simOutput4 <- simulateResiduals(fittedModel = mod_MR1, plot = F)
-plot(simOutput4)  #less dispersion, so better family, but deviation still significant
-plotResiduals(simOutput4, form = ctmax$Treatment)
-testOutliers(simOutput4, margin = c("both"), type = c("bootstrap"), plot = T) #outliers are signf. here
+plot(simOutput4)  #looks good from qqplot and residuals
+
+simOutput5 <- simulateResiduals(fittedModel = mod_MR2, plot = F) #qqplot looks good, but deviations detected
 
 
-diagnose(mod_MR2) #error w/ small eigen values and large coefficients detected
+diagnose(mod_MR1) #error w/ small eigen values and large coefficients detected
 
 #plot basic modeled relationship to see if it matches expl graphics
 library(visreg)
@@ -342,7 +344,7 @@ plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass", "Source.pop", "T
 plot(plot_MRmod1, show.title = FALSE)+
   geom_smooth(method = "lm", stat = "identity", se = TRUE)+
   geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), inherit.aes = FALSE)+
-  facet_wrap(~Test.Temp, label_parsed(c("4°C", "10 °C")))+
+  facet_wrap(~Test.Temp, label_parsed(c("4?C", "10 ?C")))+
   scale_colour_manual(values = c("cadetblue", "darkorange"))+
   theme_classic()+
   labs(y = "Mean Metabolic Rate (Log 10 ppm)", x = "Colony Mass (Log 10 grams)", color = "Source Population")+
