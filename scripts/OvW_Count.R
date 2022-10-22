@@ -128,6 +128,8 @@ library(lme4)
 library(MASS)
 prop.surv1 <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                       weights= Worker.start, family=binomial, data=count)
+prop.surv2 <- betareg(worker.prop ~ Source.pop, random = ~1 |Colony_ID, random =  ~1 |Col_Season,
+                      weights= Worker.start, link = 'log', data=count)
 
 #FINAL MODEL 3: Colony size change. +  beginning
 #colony beginning population model
@@ -140,9 +142,8 @@ end.mod <- glmmTMB(Worker.end ~ Source.pop + (1 | ColonyID),
                   family = poisson(link = "log")) 
 
 #FINAL MODEL 5: Change model (w/ both end and beg)
-change.mod <- glmmTMB(Worker.pop ~ Time + Source.pop + (1 | ColonyID),
+change.mod <- glmmTMB(Worker.pop ~ Time*Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                       data = count1, family = poisson(link = "log"))
-
 
 
 #plot basic modeled relationship to see if it matches expl graphics
