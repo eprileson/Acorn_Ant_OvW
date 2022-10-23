@@ -131,6 +131,9 @@ prop.surv1 <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Seas
 prop.surv2 <- betareg(worker.prop ~ Source.pop, random = ~1 |Colony_ID, random =  ~1 |Col_Season,
                       weights= Worker.start, link = 'log', data=count)
 
+prop.surv3 <- glmmTMB(worker.prop ~ Source.pop + (1 |Colony_ID) + (1 |Col_Season),
+                      weights= Worker.start, beta_family(link = 'log'), data=count)
+
 #FINAL MODEL 3: Colony size change. +  beginning
 #colony beginning population model
 beg.mod <- glmmTMB(Worker.start ~ Source.pop + Collection_date + (1 | ColonyID),
