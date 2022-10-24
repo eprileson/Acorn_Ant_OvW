@@ -35,7 +35,7 @@ plot(Worker.loss ~ Collection_date, data = count) #no relationship it seems
 plot(Collection_date ~ Source.pop, data = count) #rural collected at start and end; urban in middle period
 
 #shows urban pops have had bigger change in survival than rural
-hist(count$worker.prop)
+hist(count$Worker.loss)
 
 #Alternate method: wrangle data to long form to show pop change over time on X ~ source
 count1 <- read.csv("OvW_count.csv")
@@ -49,7 +49,7 @@ levels(count1$Source.pop)
 
 #adjust collection date to col_season factor
 count1$Collection_date <- as.factor(count1$Collection_date)
-class(count$Collection_date) #changed to date that R recognizes
+class(count1$Collection_date) #changed to date that R recognizes
 
 #change name to col season
 colnames(count1) <- c("Colony_ID", "Source.pop", "Beginning", "End", "Brood_count", "Col_Season")
@@ -161,7 +161,7 @@ diagnose(end.mod) #removed the interaction effect due to extremely large SD
 diagnose(prop.surv1) 
 
 library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
-simOutput3 <- simulateResiduals(fittedModel = prop.surv, plot = F)
+simOutput3 <- simulateResiduals(fittedModel = change.mod, plot = F)
 plot(simOutput3)
 
 testOutliers(simOutput3, margin = c("both"), type = c("bootstrap"), plot = T) #outliers are not signf. here
@@ -173,7 +173,7 @@ summary(surv.mod)
 summary(beg.mod) #pop start - Urban = 61.826, rural = 45.25
 summary(end.mod) #pop end - Urban = 14.04, rural = 12.21
 summary(prop.surv1)
-summary(change.mod)
+summary(change.mod) #time = -1.31, urbanpop = 0.226, time*urbanpop = -0.172
 
 # log lik statistic tests for model significance
 library(car)
@@ -182,7 +182,8 @@ Anova(prop.surv, type = "III")
 Anova(beg.mod, type = "III") #beginning #s: effect of source pop = 0.951, p = 0.33
 #date effect = 0.57, p = 0.45, interaction effect = 0.954, p = 0.33
 Anova(end.mod, type = "III") 
-Anova(change.mod, type = "III") #source pop = chisq = 0.489, p = 0.48
+Anova(change.mod, type = "III") #source pop = chisq = 0.71, p = 0.399
+#time = 396.03, p < 2e-16***, sourcepop*time = chisq = 3.64, p = 0.056
 
 #backtransform log-linked data:
 #using emmeans for figure and backtransformed values
@@ -195,7 +196,7 @@ em_beg
 #urban pop start = 49.3, SE = 6.16, rural start = 35.1, SE = 9.08
 em_end <- emmeans(end.mod, pairwise ~ Source.pop, transform = "response", adjust = "fdr")
 em_end #urban pop end = 9.6, SE = 2.09, rural pop end = 9.84, SE = 1.93
-change.em <- emmeans(change.mod, pairwise ~ Time + Source.pop, transform = "response", adjust = "fdr")
+change.em <- emmeans(change.mod, pairwise ~ Time*Source.pop, transform = "response", adjust = "fdr")
 change.em
 ##Part 7: Plotting Modeled Output
 #
@@ -243,8 +244,8 @@ prop_df <- prop_em$emmeans %>%
 change_df <- change.em$emmeans %>%
   confint()%>%
   as.data.frame()
-upper.SEg <- c(43.87, 10.8, 53.15, 13.08)
-lower.SEg <- c(29.57, 7.24, 35.63, 8.72)
+upper.SEg <- c(43.12, 11.7, 54.38, 12.41)
+lower.SEg <- c(28.92, 7.74, 35.94, 8.11)
 
 #plot graphs
 #start graph
