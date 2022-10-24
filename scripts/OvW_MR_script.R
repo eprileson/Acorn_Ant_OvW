@@ -167,11 +167,6 @@ head(AA_MR)
 #remove colonies not tested in CCRT
 AA_MR <- AA_MR[-c(7,15,38,44,64,71,120,126),]
 
-#correct for baseline factor: subtract baseline chamber 8 from colony meanMRs
-#place in new column = Cor_SumMR
-AA_MR$Cor_SumMR <- 
-#done in spreadsheet;
-
 #change source pop and coldate to factor, check levels for R and U
 AA_MR$Source.pop <- as.factor(AA_MR$Source.pop)
 levels(AA_MR$Source.pop)
@@ -355,6 +350,7 @@ plot(plot_MRmod1, show.title = FALSE)+
   )
 
 library(ggplot2)
+library(ggeffects)
 plot_Qmod1 <- ggpredict(mod_MR1, terms = c("Log.10Colony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
 #plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ logMass + Source.pop)
 plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
