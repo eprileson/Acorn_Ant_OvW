@@ -176,7 +176,8 @@ ggplot(ct_df, aes(x = Treatment, y= emmean))+
   geom_point(colour = my_colors2, size = 7)+
   geom_errorbar(aes(ymin = lower.SE, ymax = upper.SE), #uses upper and lower CI
                 width=0.05, colour = my_colors2, fun.args = list(mult = 1))+
-  labs(y = "Critical Thermal Maximum (?C)", x = "Source Population")+
+  ylab(bquote(CT[max]))+
+  xlab("Source Population")+
   theme_classic()+
   theme(
     title = element_text(size = 14),

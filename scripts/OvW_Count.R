@@ -127,12 +127,13 @@ prop.surv <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Seaso
 library(lme4)
 library(MASS)
 prop.surv1 <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Season),
-                      weights= Worker.start, family=binomial, data=count)
+                      weights= Worker.start, family = beta_family(link = "log"), data=count)
+
 prop.surv2 <- betareg(worker.prop ~ Source.pop, random = ~1 |Colony_ID, random =  ~1 |Col_Season,
                       weights= Worker.start, link = 'log', data=count)
-
-prop.surv3 <- glmmTMB(worker.prop ~ Source.pop + (1 |Colony_ID) + (1 |Col_Season),
-                      weights= Worker.start, beta_family(link = 'log'), data=count)
+#model with lme built in?
+prop.surv3 <- glmmTMB(worker.prop ~ Source.pop, list(~1 |Colony_ID + ~1 | Col_Season),
+                      weights= Worker.start, family= quasibinomial(link = 'log'), data=count)
 
 #FINAL MODEL 3: Colony size change. +  beginning
 #colony beginning population model
