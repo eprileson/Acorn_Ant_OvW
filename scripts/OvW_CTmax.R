@@ -20,7 +20,7 @@ library(puniform)
 library(knitr) 
 library(readxl)
 
-setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/CTmax")
+setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/scripts")
 
 #read in data, take a look
 ctmax <- read.csv("OvW_ctmax.csv", header = TRUE)
@@ -176,7 +176,7 @@ ggplot(ct_df, aes(x = Treatment, y= emmean))+
   geom_point(colour = my_colors2, size = 7)+
   geom_errorbar(aes(ymin = lower.SE, ymax = upper.SE), #uses upper and lower CI
                 width=0.05, colour = my_colors2, fun.args = list(mult = 1))+
-  ylab(bquote(CT[max]))+
+  ylab(bquote(CT[max]*" °C"))+
   xlab("Source Population")+
   theme_classic()+
   theme(

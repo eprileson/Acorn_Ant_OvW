@@ -306,12 +306,11 @@ plot(simOutput4)  #looks good from qqplot and residuals
 
 simOutput5 <- simulateResiduals(fittedModel = mod_MR2, plot = F) #qqplot looks good, but deviations detected
 
-
 diagnose(mod_MR2) #error w/ small eigen values and large coefficients detected
 
 #plot basic modeled relationship to see if it matches expl graphics
 library(visreg)
-visreg(mod_MR1)
+visreg(mod_MR2)
 
 
 #Part 6: statistical / hypothesis testing
@@ -332,17 +331,16 @@ summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
 
 ##Part 7: Plotting Model Output
 #
-
 #Q10 plot using ggpredict; modeled 
 library(ggeffects)
-plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass", "Source.pop", "Test.Temp"), allow.new.levels = TRUE, ci.lvl = 0.95)
+plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass", "Source.pop", "Test.Temp"), allow.new.levels = FALSE, ci.lvl = 0.95)
 
 #FINAL PREDICTED mean MR plot w/ raw data avg MR values
-plot(plot_MRmod1, show.title = FALSE)+
-  geom_smooth(method = "lm", stat = "identity", se = TRUE)+
+ggplot(plot_MRmod1, aes(x, y = predicted))+
+  geom_smooth(method = "lm", se = TRUE)+
   geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), inherit.aes = FALSE)+
-  facet_wrap(~Test.Temp, label_parsed(c("4?C", "10 ?C")))+
   scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  facet_wrap(vars(Test.Temp))+
   theme_classic()+
   labs(y = "Mean Metabolic Rate (Log 10 ppm)", x = "Colony Mass (Log 10 grams)", color = "Source Population")+
   theme_classic()+
