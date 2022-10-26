@@ -129,11 +129,15 @@ library(MASS)
 prop.surv1 <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                       weights= Worker.start, family = beta_family(link = "log"), data=count)
 
-prop.surv2 <- betareg(worker.prop ~ Source.pop, random = ~1 |Colony_ID, random =  ~1 |Col_Season,
-                      weights= Worker.start, link = 'log', data=count)
-#model with lme built in?
-prop.surv3 <- glmmTMB(worker.prop ~ Source.pop, list(~1 |Colony_ID + ~1 | Col_Season),
-                      weights= Worker.start, family= quasibinomial(link = 'log'), data=count)
+#create model with 0 inflated beta distribution (have to turn proportion data that are 1s to 0s)
+worker.propm1 <- 1 - count$worker.prop
+hist(worker.propm1)
+prop.surv2 <- glmmTMB(worker.propm1 ~ Source.pop + (1 |Colony_ID) + (1 |Col_Season),
+                      weights= Worker.start, data=count, family = beta_family(), ziformula = ~Source.pop)
+
+#model with lme built in
+prop.surv3 <- lme(worker.prop ~ Source.pop, random = list(~1 | Colony_ID , ~1 | Col_Season),
+                  data=count, weights = ~Worker.start)
 
 #FINAL MODEL 3: Colony size change. +  beginning
 #colony beginning population model
@@ -152,20 +156,24 @@ change.mod <- glmmTMB(Worker.pop ~ Time*Source.pop + (1 | Colony_ID) + (1 | Col_
 
 #plot basic modeled relationship to see if it matches expl graphics
 library(visreg)
-visreg(prop.surv)
+visreg(prop.surv3)
 
 ## Part 5: Model diagnostics
 #QQplots, residuals, AIC
 ##Diagnostics: warning msgs for models - show model convergence problem w/ small eigen value problems
 diagnose(end.mod) #removed the interaction effect due to extremely large SD
 
-diagnose(prop.surv1) 
+diagnose(prop.surv2) 
 
 library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
-simOutput3 <- simulateResiduals(fittedModel = change.mod, plot = F)
+simOutput3 <- simulateResiduals(fittedModel = prop.surv3, plot = F)
 plot(simOutput3)
 
 testOutliers(simOutput3, margin = c("both"), type = c("bootstrap"), plot = T) #outliers are not signf. here
+
+plot(prop.surv3)
+qqnorm(prop.surv3)
+
 
 
 ##Part 6: Statistical Testing
@@ -173,13 +181,13 @@ testOutliers(simOutput3, margin = c("both"), type = c("bootstrap"), plot = T) #o
 summary(surv.mod)
 summary(beg.mod) #pop start - Urban = 61.826, rural = 45.25
 summary(end.mod) #pop end - Urban = 14.04, rural = 12.21
-summary(prop.surv1)
+summary(prop.surv3)
 summary(change.mod) #time = -1.31, urbanpop = 0.226, time*urbanpop = -0.172
 
 # log lik statistic tests for model significance
 library(car)
 Anova(surv.mod, type = "III") #log likelihood
-Anova(prop.surv, type = "III")
+Anova(prop.surv3, type = "III")
 Anova(beg.mod, type = "III") #beginning #s: effect of source pop = 0.951, p = 0.33
 #date effect = 0.57, p = 0.45, interaction effect = 0.954, p = 0.33
 Anova(end.mod, type = "III") 
@@ -203,8 +211,8 @@ change.em
 #
 #Make follow up plot of modeled results
 library(ggeffects)
-prop.graph <- ggpredict(prop.surv1, terms = c("Source.pop"), 
-                        type = "fe", allow.new.levels = TRUE,ci.lvl = 0.68, width=0.05, colour = my_colors3)
+prop.graph <- ggpredict(prop.surv3, terms = c("Source.pop"), 
+                        type = "fe",ci.lvl = 0.68, width=0.05, colour = my_colors3)
 plot(prop.graph) #basic modeled plot
 
 
@@ -233,9 +241,9 @@ lower.SEd <- c(7.91, 7.51)
 
 #for proportions - use summary data since not on Log scale
 
-prop_em <- emmeans(prop.surv1, pairwise ~ Source.pop, transform = "log", adjust = "fdr")
-upper.SEp <- c(0.738, 0.8321)
-lower.SEp <- c(0.674, 0.7679)
+prop_em <- emmeans(prop.surv3, pairwise ~ Source.pop, transform = "response", adjust = "fdr")
+upper.SEp <- c(0.738, 0.8322)
+lower.SEp <- c(0.675, 0.7678)
 
 prop_df <- prop_em$emmeans %>%
   confint()%>%
