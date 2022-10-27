@@ -21,7 +21,7 @@ library(puniform)
 library(knitr) 
 library(readxl)
 
-setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/CCRT")
+setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/scripts")
 
 ### Part 2: Data Wrangling: 
 
