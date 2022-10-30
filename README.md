@@ -5,7 +5,7 @@ To find out, we ran a common garden rearing design for field caught urban and ru
 ## Scripts
 R code for each physiological measure under overwintering conditions
 
--Worker count / Survival
+- Worker count / Survival
 - Metabolic Rate
 - Chill Coma Recovery Time (CCRT)
 - Critical Thermal Maximum (CTmax)
