@@ -211,15 +211,14 @@ library(ggplot2)
 ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Log.10MeanMR, color = Source.pop))+
   geom_point()+
   geom_smooth(method = "lm", se = TRUE, level = 0.95)+
-  scale_colour_manual(values = c("cadetblue", "darkorange"))+
   facet_wrap(~Test.Temp)+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
   theme_classic()+
   ylab(bquote("Log 10 Mean CO"[2]))+ 
   xlab("Colony Mass Log (grams)")+
   labs(color = "Source Population")+
   theme_classic()+
   theme(
-    title = element_text(size = 14),
     axis.title = element_text(size = 14),
     axis.text = element_text(size = 10)
   )
@@ -293,16 +292,16 @@ mod_MR<-lme(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*Test.Temp, random = ~1
 #FINAL models
 modMR_control <- glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))
 mod_MR1 <- glmmTMB(Q10 ~ Log.10Colony_mass + Source.pop + 
-                     (1 | Colony_ID) + (1 | Col_Season),
+                     (1 | Col_Season),
                    data = AA_MR1, family = gaussian(link = "identity"))
 mod_MR2 <- glmmTMB(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*Test.Temp +
-                     (1|Colony_ID)+ (1 | Col_Season), data = AA_MR1, control = modMR_control)
+                     (1 | Col_Season), data = AA_MR1)
 
 ###5 Model Diagnostics:
 library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
 
 simOutput4 <- simulateResiduals(fittedModel = mod_MR1, plot = F)
-plot(simOutput4)  #looks good from qqplot and residuals
+plot(simOutput5)  #looks good from qqplot and residuals
 
 simOutput5 <- simulateResiduals(fittedModel = mod_MR2, plot = F) #qqplot looks good, but deviations detected
 
@@ -352,6 +351,7 @@ ggplot(plot_MRmod1, aes(x, y = predicted))+
 library(ggplot2)
 library(ggeffects)
 plot_Qmod1 <- ggpredict(mod_MR1, terms = c("Log.10Colony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
+##FINAL Q10 Plot##
 #plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ logMass + Source.pop)
 plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
   ylab(bquote(italic("Q")["10"]))+
