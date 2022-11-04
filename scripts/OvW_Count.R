@@ -134,7 +134,7 @@ prop.surv3 <- glmmTMB(worker.prop ~ Source.pop, random = ~ 1 | Col_Season,
                       weights= Worker.start, family= quasibinomial(link = 'log'), data=count)
 
 #FINAL MODEL 1: Change model (w/ both end and beg)
-change.mod <- glmmTMB(Worker.pop ~ Time*Source.pop + (1 | Colony_ID) + (1 | Col_Season),
+change.mod <- glmmTMB(Worker.pop ~ Time*Source.pop + (1 | Col_Season),
                       data = count1, family = poisson(link = "log"))
 
 #FINAL MODEL 2: Proportion of worker ants remaining after winter
@@ -229,7 +229,7 @@ prop <- ggplot(prop.graph, aes(x, y = predicted))+
   geom_point(colour = my_colors3, size = 7)+
   geom_errorbar(aes(ymin = lower.SEp, ymax = upper.SEp), fun.data = 'mean_se', 
                 width=0.05, fun.args = list(mult = 1), colour = my_colors3)+
-  labs(y="Proportion of Workers Remaining", x = "Source Population", tag = "B")+
+  labs(y="Proportion of Workers", x = "Source Population", tag = "B")+
   theme_classic()+
   theme(
     title = element_text(size = 14),

@@ -185,9 +185,9 @@ class(AA_MR$Test.Temp)
 levels(AA_MR1$Test.Temp)
 
 #remove NAs from the dataset; note, this removes the chamber 8 control tubes
-AA_MR1 <- AA_MR[!(AA_MR$Chamber ==8 | AA_MR$Colony_mass == 'NA'),]
+AA_MR1 <- AA_MR[!(AA_MR$Chamber ==8),]
+
 #check
-AA_MR1[1:20,]
 head(AA_MR1)
 
 #log transform MR and colony mass data (don't do for Q10 data)
@@ -333,15 +333,14 @@ summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
 #Q10 plot using ggpredict; modeled 
 library(ggeffects)
 plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass", "Source.pop", "Test.Temp"), allow.new.levels = FALSE, ci.lvl = 0.95)
-
 #FINAL PREDICTED mean MR plot w/ raw data avg MR values
-ggplot(plot_MRmod1, aes(x, y = predicted))+
-  geom_smooth(method = "lm", se = TRUE)+
+plot(plot_MRmod1)+
   geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), inherit.aes = FALSE)+
   scale_colour_manual(values = c("cadetblue", "darkorange"))+
-  facet_wrap(vars(Test.Temp))+
   theme_classic()+
-  labs(y = "Mean Metabolic Rate (Log 10 ppm)", x = "Colony Mass (Log 10 grams)", color = "Source Population")+
+  ylab(bquote("Metabolic Rate (Log"["10"]*" CO"["2"]*" ppm)"))+
+  xlab(bquote("Colony Mass (Log"["10"]*" grams)"))+ 
+  labs(title = " ", color = "Source Population")+
   theme_classic()+
   theme(
     axis.title = element_text(size = 14),
@@ -353,10 +352,10 @@ library(ggeffects)
 plot_Qmod1 <- ggpredict(mod_MR1, terms = c("Log.10Colony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
 ##FINAL Q10 Plot##
 #plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ logMass + Source.pop)
-plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
-  ylab(bquote(italic("Q")["10"]))+
-  xlab("Colony Mass Log 10 (grams)")+
-  colorlab("Source Population")+
+plot(plot_Qmod1[!is.na(AA_MR1$Test.Temp),], show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
+  ylab(bquote(italic("Q")["10"]*" Reaction Rate"))+
+  xlab(bquote("Colony Mass (Log"["10"]*" grams)"))+
+  labs(color = "Source Population")+
   geom_smooth(se = TRUE, method = "lm")+
   theme_classic()+
   theme(
@@ -364,7 +363,7 @@ plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blu
     axis.title = element_text(size = 14),
     axis.text = element_text(size = 10)
   )
-  
+plot_Qmod1$Test.Temp
 #create emmeans object that works w. ggplot
 library(magrittr)
 mr_df <- mests$emmeans %>%
