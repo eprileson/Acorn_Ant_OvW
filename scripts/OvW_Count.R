@@ -134,7 +134,8 @@ prop.surv3 <- glmmTMB(worker.prop ~ Source.pop, random = ~ 1 | Col_Season,
                       weights= Worker.start, family= quasibinomial(link = 'log'), data=count)
 
 #FINAL MODEL 1: Change model (w/ both end and beg)
-change.mod <- glmmTMB(Worker.pop ~ Time*Source.pop + (1 | Col_Season),
+#added the colony ID random effect back
+change.mod <- glmmTMB(Worker.pop ~ Time*Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                       data = count1, family = poisson(link = "log"))
 
 #FINAL MODEL 2: Proportion of worker ants remaining after winter
@@ -210,9 +211,9 @@ lower.SEg <- c(28.92, 7.74, 35.94, 8.11)
 library(ggplot2)
 #change
 change <- ggplot(change_df, aes(x = Time, y= rate))+  
-  geom_point(color = my_colors4, size = 7)+
+  geom_point(color = my_colors4, size = 7, position = position_dodge(width = 0.1))+
   geom_errorbar(aes(ymin = lower.SEg, ymax = upper.SEg), color = my_colors4, fun.data = 'mean_se', 
-                width=0.05, fun.args = list(mult = 1))+
+                width=0.05, fun.args = list(mult = 1), position = position_dodge(width = 0.1))+
   labs(y="Worker Population", x = "Census Points", tag = "A")+
   theme_classic()+
   theme(
@@ -249,7 +250,7 @@ plot_grid(change, prop, ncol = 2, nrow = 1,
 my_colors3 <- c("cadetblue", "darkorange")
 names(my_colors3) <- levels(count$Source.pop)
 
-my_colors4 <- c("cadetblue", "cadet blue", "dark orange", "darkorange")
+my_colors4 <- c("cadetblue", "cadet blue", "dark orange", "dark orange")
 names(my_colors4) <- levels(c(count1$Source.pop, count1$Time))
 
 

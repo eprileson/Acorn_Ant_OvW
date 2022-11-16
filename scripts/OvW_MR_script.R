@@ -175,14 +175,14 @@ AA_MR$Collection_date <- as.factor(AA_MR$Collection_date)
 #change col names to reflect cod date as factor
 colnames(AA_MR) <- c("Sec", "MeanMR", "MeanMR_RA", "Cor_SumMR", "Chamber", "ExpeDataFile",
                       "DataLength","StartIndex", "Source.pop", "Colony_mass", "Colony_ID",
-                      "Test.Temp","Q10","Col_Season")
+                      "facet","Q10","Col_Season")  #changed test temp to facet for visualization help later
 head(AA_MR)
 
 
 #change temp to factor
-AA_MR$Test.Temp <- as.factor(AA_MR$Test.Temp)
-class(AA_MR$Test.Temp)
-levels(AA_MR1$Test.Temp)
+AA_MR$facet <- as.factor(AA_MR$facet)
+class(AA_MR$facet)
+levels(AA_MR1$facet)
 
 #remove NAs from the dataset; note, this removes the chamber 8 control tubes
 AA_MR1 <- AA_MR[!(AA_MR$Chamber ==8),]
@@ -193,12 +193,6 @@ head(AA_MR1)
 #log transform MR and colony mass data (don't do for Q10 data)
 AA_MR1$Log.10MeanMR <- log10(AA_MR1$MeanMR)
 AA_MR1$Log.10Colony_mass <- log10(AA_MR1$Colony_mass)
-
-#calculate means for CO2 at both temps and pops (data = 1st arg, subset by logical arg = 2nd arg, 3rd arg = cols to keep)
-MR_avg <- subset(AA_MR1, Test.Temp == 10, select = c(Log.10MeanMR, Test.Temp, Source.pop))
-MR_avg2 <- subset(MR_avg, Source.pop == "Urban", select = c(Log.10MeanMR, Test.Temp, Source.pop)) #for rural @4 deg
-MR_avg2[1:10,] #check
-mean(MR_avg2$Log.10MeanMR)
 
 #Part 3: exploratory graphics
 #
@@ -294,7 +288,7 @@ modMR_control <- glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS
 mod_MR1 <- glmmTMB(Q10 ~ Log.10Colony_mass + Source.pop + 
                      (1 | Col_Season),
                    data = AA_MR1, family = gaussian(link = "identity"))
-mod_MR2 <- glmmTMB(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*Test.Temp +
+mod_MR2 <- glmmTMB(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*facet +
                      (1 | Col_Season), data = AA_MR1)
 
 ###5 Model Diagnostics:
@@ -316,11 +310,11 @@ visreg(mod_MR2)
 #summary stats
 library(car)
 summary(mod_MR2)
-Anova(mod_MR2, type="III") #test temp and colony mass are sign. predictors, source pop is not (p = 0.8118)
+Anova(mod_MR2, type="III") #0.645, p = 0.422 #test temp and colony mass are sign. predictors, source pop is not (p = 0.8118)
 
 #Q10 hypothesis test: Does Q10 differ between urban and rural w/ urban having higher Q10 rate?
 summary(mod_MR1) #Q10 model
-Anova(mod_MR1, type = "III") #chisq = 1.4872, P = 0.222656
+Anova(mod_MR1, type = "III") #chisq = 0.923, P = 0.337
 
 # Pairwise tests
 library(emmeans)
@@ -332,9 +326,18 @@ summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
 #
 #Q10 plot using ggpredict; modeled 
 library(ggeffects)
-plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass", "Source.pop", "Test.Temp"), allow.new.levels = FALSE, ci.lvl = 0.95)
+library(ggplot2)
+library(dplyr)
+plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass", 
+                                           "Source.pop", "facet"), 
+                         allow.new.levels = TRUE, ci.lvl = 0.95)
+
 #FINAL PREDICTED mean MR plot w/ raw data avg MR values
-plot(plot_MRmod1)+
+#raw
+#variable names
+variable_names <- list("4" = "4°C","10" = "10°")
+
+plot(plot_MRmod1, show.title=F, alpha = 0.05)+
   geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), inherit.aes = FALSE)+
   scale_colour_manual(values = c("cadetblue", "darkorange"))+
   theme_classic()+
@@ -346,37 +349,43 @@ plot(plot_MRmod1)+
     axis.title = element_text(size = 14),
     axis.text = element_text(size = 10)
   )
+  facet_grid(~ facet)
 
-library(ggplot2)
-library(ggeffects)
-plot_Qmod1 <- ggpredict(mod_MR1, terms = c("Log.10Colony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
-##FINAL Q10 Plot##
-#plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ logMass + Source.pop)
-plot(plot_Qmod1[!is.na(AA_MR1$Test.Temp),], show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
-  ylab(bquote(italic("Q")["10"]*" Reaction Rate"))+
-  xlab(bquote("Colony Mass (Log"["10"]*" grams)"))+
-  labs(color = "Source Population")+
-  geom_smooth(se = TRUE, method = "lm")+
-  theme_classic()+
-  theme(
-    title = element_text(size = 14),
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 10)
-  )
-plot_Qmod1$Test.Temp
+#try 2 w AL's help FINAL PLOT!!!
+  ggplot(data = plot_MRmod1,aes(x, y = predicted, group = group))+
+    geom_ribbon(aes(ymin= conf.low, ymax= conf.high, y= NULL, fill = group), alpha = 0.3)+
+    guides (fill = F)+
+    geom_smooth(method = "lm",se = FALSE, aes(colour = group)) +
+    geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), alpha = 0.7, inherit.aes = FALSE)+
+    scale_colour_manual(values = c("cadetblue", "darkorange"))+
+    theme_classic()+
+    ylab(bquote("Metabolic Rate (Log"[" 10"]*" CO"["2"]*" ppm)"))+
+    xlab(bquote("Colony Mass (Log"["10"]*" grams)"))+ 
+    labs(title = " ", color = "Source Population")+
+    theme(
+      axis.title = element_text(size = 14),
+      axis.text = element_text(size = 10)
+    ) + facet_wrap(~ facet)
+
+#now just need to fix labels for facets to include degree symbol and C
+  
+
 #create emmeans object that works w. ggplot
 library(magrittr)
 mr_df <- mests$emmeans %>%
   confint() %>%
   as.data.frame()
 
-ggplot(plot_MRmod1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop))+
-  geom_point()+
-  geom_smooth(method = "lm", stat = "identity", se = TRUE)+
-  scale_colour_manual(values = c("cadetblue", "darkorange"))+
-  theme_classic()+
-  labs(y = "Metabolic Rate", x = "Colony Mass (Log 10 grams)", color = "Source Population")+
-  facet_wrap(~Test.Temp)
+library(ggplot2)
+library(ggeffects)
+plot_Qmod1 <- ggpredict(mod_MR1, terms = c("Log.10Colony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
+##FINAL Q10 Plot##
+#plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ logMass + Source.pop)
+plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
+  geom_point(data = AA_MR1, aes(x = Log.10Colony_mass, y = Q10, color = Source.pop), inherit.aes = FALSE)+
+  ylab(bquote(italic("Q")["10"]*" Reaction Rate"))+
+  xlab(bquote("Colony Mass (Log"["10"]*" grams)"))+
+  labs(color = "Source Population")+
   theme_classic()+
   theme(
     title = element_text(size = 14),
