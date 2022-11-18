@@ -191,8 +191,8 @@ AA_MR1 <- AA_MR[!(AA_MR$Chamber ==8),]
 head(AA_MR1)
 
 #log transform MR and colony mass data (don't do for Q10 data)
-AA_MR1$Log.10MeanMR <- log10(AA_MR1$MeanMR)
-AA_MR1$Log.10Colony_mass <- log10(AA_MR1$Colony_mass)
+AA_MR1$LogMeanMR <- log(AA_MR1$MeanMR)
+AA_MR1$LogColony_mass <- log(AA_MR1$Colony_mass)
 
 #Part 3: exploratory graphics
 #
@@ -217,13 +217,6 @@ ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Log.10M
     axis.text = element_text(size = 10)
   )
 
-ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Test.Temp, y = Log.10MeanMR, color = Source.pop))+
-  geom_point(colors = my_colorsMR, size = 7, stat = 'summary', fun.y = 'mean')+
-  geom_errorbar(stat = 'summary', fun.data = 'mean_se', 
-                width=0.05, fun.args = list(mult = 1))+
-  scale_colour_manual(values = c("cadetblue", "darkorange"))+
-  theme_classic()
-
 #basic plot to show Q10s
 library(ggplot2)
 ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Q10, color = Source.pop))+
@@ -239,7 +232,6 @@ ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Q10, co
     axis.title = element_text(size = 14),
     axis.text = element_text(size = 10)
   )
-
 
 #mean x values for segments
 # y1 (rural / 4 deg = -3.679414)
@@ -267,8 +259,7 @@ ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Test.Temp, y = Log.10MeanMR, c
          geom_segment(aes(x = 4, y = -3.679414, xend = 10, yend = -3.585731))+
            geom_segment(aes(x = 4, y = -3.661369, xend = 10, yend = -3.575597))+
            
-
-#colors
+#colors for data viz
 my_colorsMR <- c("cadetblue", "darkorange")
 names(my_colorsMR) <- levels(AA_MR1$Source.pop)
 my_colorsMR1 <- c("cadetblue", "darkorange")
@@ -281,21 +272,21 @@ library(nlme)
 install.packages('TMB', type = 'source')
 library(glmmTMB)
 library(car)
-mod_MR<-lme(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*Test.Temp, random = ~1|Colony_ID, data=AA_MR1)
+mod_MR<-lme(LogMeanMR ~ LogColony_mass + Source.pop*Test.Temp, random = ~1|Colony_ID, data=AA_MR1)
 
 #FINAL models
 modMR_control <- glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))
-mod_MR1 <- glmmTMB(Q10 ~ Log.10Colony_mass + Source.pop + 
+mod_MR1 <- glmmTMB(Q10 ~ LogColony_mass + Source.pop + 
                      (1 | Col_Season),
                    data = AA_MR1, family = gaussian(link = "identity"))
-mod_MR2 <- glmmTMB(Log.10MeanMR ~ Log.10Colony_mass + Source.pop*facet +
+mod_MR2 <- glmmTMB(LogMeanMR ~ LogColony_mass + Source.pop*facet +
                      (1 | Col_Season), data = AA_MR1)
 
 ###5 Model Diagnostics:
 library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
 
 simOutput4 <- simulateResiduals(fittedModel = mod_MR1, plot = F)
-plot(simOutput5)  #looks good from qqplot and residuals
+plot(simOutput4)  #looks good from qqplot and residuals
 
 simOutput5 <- simulateResiduals(fittedModel = mod_MR2, plot = F) #qqplot looks good, but deviations detected
 
@@ -319,7 +310,7 @@ Anova(mod_MR1, type = "III") #chisq = 0.923, P = 0.337
 # Pairwise tests
 library(emmeans)
 #Q10 emmeans test, w/ backtransformation
-Qmests <- emmeans(mod_MR1, pairwise~Log.10Colony_mass + Source.pop, adjust = "tukey")
+Qmests <- emmeans(mod_MR1, pairwise~LogColony_mass + Source.pop, adjust = "tukey")
 summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
 
 ##Part 7: Plotting Model Output
@@ -328,7 +319,7 @@ summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
 library(ggeffects)
 library(ggplot2)
 library(dplyr)
-plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass", 
+plot_MRmod1 <- ggpredict(mod_MR2, terms =c("LogColony_mass", 
                                            "Source.pop", "facet"), 
                          allow.new.levels = TRUE, ci.lvl = 0.95)
 
@@ -338,11 +329,11 @@ plot_MRmod1 <- ggpredict(mod_MR2, terms =c("Log.10Colony_mass",
 variable_names <- list("4" = "4°C","10" = "10°")
 
 plot(plot_MRmod1, show.title=F, alpha = 0.05)+
-  geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), inherit.aes = FALSE)+
+  geom_point(data = AA_MR1, aes(x = LogColony_mass,y = LogMeanMR, color = Source.pop), inherit.aes = FALSE)+
   scale_colour_manual(values = c("cadetblue", "darkorange"))+
   theme_classic()+
-  ylab(bquote("Metabolic Rate (Log"["10"]*" CO"["2"]*" ppm)"))+
-  xlab(bquote("Colony Mass (Log"["10"]*" grams)"))+ 
+  ylab(bquote("Metabolic Rate (Ln"*" CO"["2"]*" ppm)"))+
+  xlab(bquote("Colony Mass (Ln"*" grams)"))+ 
   labs(title = " ", color = "Source Population")+
   theme_classic()+
   theme(
@@ -359,35 +350,26 @@ fac_labels <- c('4' = "4° C", '10' = "10° C")
     geom_ribbon(aes(ymin= conf.low, ymax= conf.high, y= NULL, fill = group), alpha = 0.25)+
     guides (fill = F)+
     geom_smooth(method = "lm",se = FALSE, aes(colour = group)) +
-    geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
+    geom_point(data = AA_MR1, aes(x = LogColony_mass,y = LogMeanMR, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
     scale_colour_manual(values = c("cadetblue", "darkorange"))+
     theme_classic()+
-    ylab(bquote("Metabolic Rate (Log"[" 10"]*" CO"["2"]*" ppm)"))+
-    xlab(bquote("Colony Mass (Log"["10"]*" grams)"))+ 
+    ylab(bquote("Metabolic Rate (Ln"*" CO"["2"]*" ppm)"))+
+    xlab(bquote("Colony Mass (Ln"*" grams)"))+ 
     labs(title = " ", color = "Source Population")+
     theme(
       axis.title = element_text(size = 14),
       axis.text = element_text(size = 10)
     ) + facet_wrap(~ facet, labeller = as_labeller(fac_labels))
 
-#now just need to fix labels for facets to include degree symbol and C
-  
-
-#create emmeans object that works w. ggplot
-library(magrittr)
-mr_df <- mests$emmeans %>%
-  confint() %>%
-  as.data.frame()
-
 library(ggplot2)
 library(ggeffects)
-plot_Qmod1 <- ggpredict(mod_MR1, terms = c("Log.10Colony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
+plot_Qmod1 <- ggpredict(mod_MR1, terms = c("LogColony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
 ##FINAL Q10 Plot##
 #plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ logMass + Source.pop)
 plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
-  geom_point(data = AA_MR1, aes(x = Log.10Colony_mass, y = Q10, color = Source.pop), inherit.aes = FALSE)+
+  geom_point(data = AA_MR1, aes(x = LogColony_mass, y = Q10, color = Source.pop), inherit.aes = FALSE)+
   ylab(bquote(italic("Q")["10"]*" Reaction Rate"))+
-  xlab(bquote("Colony Mass (Log"["10"]*" grams)"))+
+  xlab(bquote("Colony Mass (Ln"*" grams)"))+
   labs(color = "Source Population")+
   theme_classic()+
   theme(
@@ -396,55 +378,9 @@ plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blu
     axis.text = element_text(size = 10)
   )
 
-#plot basic plot of MR over mass / temp with source pop
-#needs span gas corrections
-plot_modMR2 <- ggpredict(mod_MR2, terms = c("Test.Temp", "Source.pop"))
 
 
-#plot using emmeans to get accurate predicted comparisons
-ggplot(mr_df, aes(x = Test.Temp, y = emmean, color = Source.pop))+
-  geom_point(aes(colour = factor(Source.pop)), size = 5)+
-  geom_errorbar(aes(ymin = lower.CL, ymax = upper.CL), width = 0.05)+
-  geom_segment(aes(x = 1, y = -3.675584, xend = 2, yend = -3.581902), color = "cadetblue")+
-  geom_segment(aes(x = 1, y = -3.665092, xend = 2, yend = -3.580440), color = "darkorange")+
-  scale_colour_manual(values = c("cadetblue", "darkorange"))+
-  labs(y = "Mean CO2 (Log ppm)", x = "Test Temperature", color = "Source Population")+
-  theme_classic()+
-  theme(
-    title = element_text(size = 14),
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 10)
-  )
-#models w/ facet of test temp and mass - NEEDS EDITING
-ggplot(mr_df, aes(x = Log.10Colony_mass, y = emmean, color = Source.pop))+
-  geom_point(size = 5)+
-  geom_smooth(method = "lm", se = TRUE, level = 0.68)+
-  facet_wrap(~Test.Temp)+
-  scale_colour_manual(values = c("cadetblue", "darkorange"))+
-  labs(y = "Mean CO2 (Log ppm)", x = "Test Temperature", color = "Source Population")+
-  theme_classic()+
-  theme(
-    title = element_text(size = 14),
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 10)
-  )
 
-
-#plot the modeled relationship of MR from mass and source
-plot(plot_modMR1)+
-  geom_point(aes(x = Source.pop, y = Log.10MeanMR), size = 5, stat = 'summary', fun.y = 'mean', inherit.aes = FALSE)+
-  geom_errorbar(stat = 'summary', fun.data = 'mean_se', 
-                width=0, fun.args = list(mult = 1))
-  labs(y = "Mean CO2 (Log)", x = "Test.Temp")+
-  theme_classic()+
-  theme(
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 10)
-  )
-
-  
-
-  
 ###### additional ###  
   
 #Calculating Q10 vals for model + Graphics
