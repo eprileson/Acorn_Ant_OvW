@@ -214,7 +214,10 @@ change <- ggplot(change_df, aes(x = Time, y= rate))+
   geom_point(color = my_colors4, size = 7, position = position_dodge(width = 0.1))+
   geom_errorbar(aes(ymin = lower.SEg, ymax = upper.SEg), color = my_colors4, fun.data = 'mean_se', 
                 width=0.05, fun.args = list(mult = 1), position = position_dodge(width = 0.1))+
-  labs(y="Worker Population", x = "Census Points", tag = "A")+
+  geom_point(data = count1, aes(x = Time, y = Worker.pop, color = Source.pop), 
+             alpha = 0.5, position = "jitter", inherit.aes = FALSE)+
+  scale_color_manual(values = c("cadet blue","dark orange"))+
+  labs(y="Worker Number", x = "Census Points", tag = "A", color = "Source Population")+
   theme_classic()+
   theme(
     title = element_text(size = 14),
@@ -230,7 +233,7 @@ prop <- ggplot(prop.graph, aes(x, y = predicted))+
   geom_point(colour = my_colors3, size = 7)+
   geom_errorbar(aes(ymin = lower.SEp, ymax = upper.SEp), fun.data = 'mean_se', 
                 width=0.05, fun.args = list(mult = 1), colour = my_colors3)+
-  labs(y="Proportion of Workers", x = "Source Population", tag = "B")+
+  labs(y="Proportion of Workers Remaining", x = "Source Population", tag = "B")+
   theme_classic()+
   theme(
     title = element_text(size = 14),

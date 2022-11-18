@@ -352,11 +352,14 @@ plot(plot_MRmod1, show.title=F, alpha = 0.05)+
   facet_grid(~ facet)
 
 #try 2 w AL's help FINAL PLOT!!!
+#make quick label df
+fac_labels <- c('4' = "4° C", '10' = "10° C")
+                        
   ggplot(data = plot_MRmod1,aes(x, y = predicted, group = group))+
-    geom_ribbon(aes(ymin= conf.low, ymax= conf.high, y= NULL, fill = group), alpha = 0.3)+
+    geom_ribbon(aes(ymin= conf.low, ymax= conf.high, y= NULL, fill = group), alpha = 0.25)+
     guides (fill = F)+
     geom_smooth(method = "lm",se = FALSE, aes(colour = group)) +
-    geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), alpha = 0.7, inherit.aes = FALSE)+
+    geom_point(data = AA_MR1, aes(x = Log.10Colony_mass,y = Log.10MeanMR, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
     scale_colour_manual(values = c("cadetblue", "darkorange"))+
     theme_classic()+
     ylab(bquote("Metabolic Rate (Log"[" 10"]*" CO"["2"]*" ppm)"))+
@@ -365,7 +368,7 @@ plot(plot_MRmod1, show.title=F, alpha = 0.05)+
     theme(
       axis.title = element_text(size = 14),
       axis.text = element_text(size = 10)
-    ) + facet_wrap(~ facet)
+    ) + facet_wrap(~ facet, labeller = as_labeller(fac_labels))
 
 #now just need to fix labels for facets to include degree symbol and C
   
