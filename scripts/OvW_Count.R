@@ -84,11 +84,6 @@ ggplot(count1, aes(x = Time, y = Worker.pop, colour = Source.pop))+
   )
 
 #calculate median starting pop urban v rural - TidyR
-count <- count %>%
-  group_by(Source.pop)%>%
-  mutate(med.R = median(Worker.end))%>%
-  mutate(sd = sd(Worker.end))
-
 #OR base
 medR <- median(count[c(1:9, 31:42, 45:47),3]) #rural median = 48.5
 sd(count[c(1:9, 31:42, 45:47),3]) #rural sd = 26.325
@@ -113,44 +108,40 @@ library(glmmTMB)
 library(nlme)
 
 #first model for worker loss over 4 mo
-#FINAL MODEL 1 - 
 mod.control2 <- glmmTMBControl(optimizer=optim,
                                optArgs=list(method="BFGS"))
 surv.mod <- glmmTMB(Worker.loss ~ Source.pop + (1 | ColonyID) + (1 | Collection_date:Source.pop), 
                     data = count, control = mod.control2, 
                     family = poisson(link = "log"))
 
-#FINAL MODEL 2: Proportional Worker Loss
+# Proportional Worker Loss
 prop.surv <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                     data=count)
-#model w/ quasi binomial - doesn't work with glmmTMB
-library(lme4)
-library(MASS)
-
+#betareg try?
 prop.surv2 <- betareg(worker.prop ~ Source.pop, random =  ~1 |Col_Season,
-                      weights= Worker.start, link = 'log', data=count)
+                      weights= Worker.start, link = 'log', data=count) #no
 #model with lme built in?
 prop.surv3 <- glmmTMB(worker.prop ~ Source.pop, random = ~ 1 | Col_Season,
-                      weights= Worker.start, family= quasibinomial(link = 'log'), data=count)
+                      weights= Worker.start, family= quasibinomial(link = 'log'), data=count) #no
 
-#FINAL MODEL 1: Change model (w/ both end and beg)
+#FINAL MODEL 1: Proportion of worker ants remaining after winter
+prop.surv1 <- glmmTMB(worker.prop ~ Source.pop + (1 | Col_Season),
+                      weights= Worker.start, family = betabinomial(link = "logit"), data=count)
+
+#FINAL MODEL 2: Change model (w/ both end and beg)
 #added the colony ID random effect back
 change.mod <- glmmTMB(Worker.pop ~ Time*Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                       data = count1, family = poisson(link = "log"))
 
-#FINAL MODEL 2: Proportion of worker ants remaining after winter
-prop.surv1 <- glmmTMB(worker.prop ~ Source.pop + (1 | Col_Season),
-                      weights= Worker.start, family = betabinomial(link = "logit"), data=count)
-
 
 #plot basic modeled relationship to see if it matches expl graphics
 library(visreg)
-visreg(prop.surv)
+visreg(prop.surv1)
 
 ## Part 5: Model diagnostics
 #QQplots, residuals, AIC
 ##Diagnostics: warning msgs for models - show model convergence problem w/ small eigen value problems
-diagnose(end.mod) #removed the interaction effect due to extremely large SD
+diagnose(change.mod) #removed the interaction effect due to extremely large SD
 
 diagnose(prop.surv1)  #really good fit both w/ DHARMa and diagnose()
 
@@ -206,17 +197,25 @@ change_df <- change.em$emmeans %>%
 upper.SEg <- c(43.12, 11.7, 54.38, 12.41)
 lower.SEg <- c(28.92, 7.74, 35.94, 8.11)
 
-#plot graphs
 
+#plot colors
+my_colors3 <- c("cadetblue", "darkorange")
+names(my_colors3) <- levels(count$Source.pop)
+
+my_colors4 <- c("cadetblue", "cadet blue", "dark orange", "dark orange")
+names(my_colors4) <- levels(c(count1$Source.pop, count1$Time))
+
+#plot graphs
 library(ggplot2)
 #change
 change <- ggplot(change_df, aes(x = Time, y= rate))+  
-  geom_point(color = my_colors4, size = 7, position = position_dodge(width = 0.1))+
-  geom_errorbar(aes(ymin = lower.SEg, ymax = upper.SEg), color = my_colors4, fun.data = 'mean_se', 
-                width=0.05, fun.args = list(mult = 1), position = position_dodge(width = 0.1))+
   geom_point(data = count1, aes(x = Time, y = Worker.pop, color = Source.pop), 
-             alpha = 0.5, position = "jitter", inherit.aes = FALSE)+
+             alpha = 0.5, position = position_jitterdodge(jitter.width = 0.5, dodge.width = NULL), inherit.aes = FALSE)+
+  geom_point(aes(fill = factor(Source.pop)), color = my_colors4, size = 7, position = position_dodge(width = 0.3))+
+  geom_errorbar(aes(fill = factor(Source.pop), ymin = lower.SEg, ymax = upper.SEg), color = my_colors4, fun.data = 'mean_se', 
+                width=0.05, fun.args = list(mult = 1), position = position_dodge(width = 0.3))+
   scale_color_manual(values = c("cadet blue","dark orange"))+
+  guides(fill = "none")+
   labs(y="Worker Number", x = "Census Points", tag = "A", color = "Source Population")+
   theme_classic()+
   theme(
@@ -250,11 +249,6 @@ plot_grid(change, prop, ncol = 2, nrow = 1,
           rel_widths = c(.5, .5, .5))   #use 1028 x 555 px aspect ratio
 
 
-my_colors3 <- c("cadetblue", "darkorange")
-names(my_colors3) <- levels(count$Source.pop)
-
-my_colors4 <- c("cadetblue", "cadet blue", "dark orange", "dark orange")
-names(my_colors4) <- levels(c(count1$Source.pop, count1$Time))
 
 
 #####################
