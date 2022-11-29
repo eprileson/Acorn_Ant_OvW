@@ -114,7 +114,7 @@ surv.mod <- glmmTMB(Worker.loss ~ Source.pop + (1 | ColonyID) + (1 | Collection_
                     data = count, control = mod.control2, 
                     family = poisson(link = "log"))
 
-# Proportional Worker Loss
+#initial model: Proportional Worker Loss
 prop.surv <- glmmTMB(worker.prop ~ Source.pop + (1 | Colony_ID) + (1 | Col_Season),
                     data=count)
 #betareg try?
@@ -186,10 +186,6 @@ prop_em <- emmeans(prop.surv1, pairwise ~ Source.pop, transform = "logit", adjus
 upper.SEp <- c(0.29, 0.27)
 lower.SEp <- c(0.22, 0.21)
 
-prop_df <- prop_em$emmeans %>%
-  confint()%>%
-  as.data.frame()
-
 #for change data
 change_df <- change.em$emmeans %>%
   confint()%>%
@@ -215,7 +211,7 @@ change <- ggplot(change_df, aes(x = Time, y= rate))+
   geom_errorbar(aes(fill = factor(Source.pop), ymin = lower.SEg, ymax = upper.SEg), color = my_colors4, fun.data = 'mean_se', 
                 width=0.05, fun.args = list(mult = 1), position = position_dodge(width = 0.3))+
   scale_color_manual(values = c("cadet blue","dark orange"))+
-  guides(fill = "none")+
+  guides(fill = "none", color = "none")+  #change back if need legend
   labs(y="Worker Number", x = "Census Points", tag = "A", color = "Source Population")+
   theme_classic()+
   theme(
@@ -229,10 +225,14 @@ change <- ggplot(change_df, aes(x = Time, y= rate))+
 
 #workers lost as a proportion of starting size
 prop <- ggplot(prop.graph, aes(x, y = predicted))+
+  geom_point(data = count, aes(x = Source.pop, y = worker.prop, color = Source.pop), 
+             position = position_jitterdodge(jitter.width = 0.5, dodge.width = NULL), inherit.aes = FALSE)+
   geom_point(colour = my_colors3, size = 7)+
   geom_errorbar(aes(ymin = lower.SEp, ymax = upper.SEp), fun.data = 'mean_se', 
                 width=0.05, fun.args = list(mult = 1), colour = my_colors3)+
+  scale_color_manual(values = c("black","black"))+
   labs(y="Proportion of Workers Remaining", x = "Source Population", tag = "B")+
+  guides(color = "none")+  #change back if need legend
   theme_classic()+
   theme(
     title = element_text(size = 14),

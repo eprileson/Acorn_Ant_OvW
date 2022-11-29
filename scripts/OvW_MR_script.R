@@ -339,22 +339,21 @@ plot(plot_MRmod1, show.title=F, alpha = 0.05)+
   theme(
     axis.title = element_text(size = 14),
     axis.text = element_text(size = 10)
-  )
-  facet_grid(~ facet)
+  )+facet_grid(~ facet)
 
 #try 2 w AL's help FINAL PLOT!!!
 #make quick label df
 fac_labels <- c('4' = "4° C", '10' = "10° C")
                         
   ggplot(data = plot_MRmod1,aes(x, y = predicted, group = group))+
-    geom_ribbon(aes(ymin= conf.low, ymax= conf.high, y= NULL, fill = group), alpha = 0.25)+
+    geom_ribbon(aes(ymin= conf.low, ymax= conf.high, y= NULL, fill = group), alpha = 0.15)+
     guides (fill = F)+
-    geom_smooth(method = "lm",se = FALSE, aes(colour = group)) +
+    geom_smooth(method = "lm",se = FALSE, aes(colour = group), size = 0.75) +
     geom_point(data = AA_MR1, aes(x = LogColony_mass,y = LogMeanMR, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
     scale_colour_manual(values = c("cadetblue", "darkorange"))+
     theme_classic()+
-    ylab(bquote("Metabolic Rate (Ln"*" CO"["2"]*" ppm)"))+
-    xlab(bquote("Colony Mass (Ln"*" grams)"))+ 
+    ylab(bquote("Metabolic Rate (ln"*" CO"["2"]*" ppm)"))+
+    xlab(bquote("Colony Mass (ln"*" grams)"))+ 
     labs(title = " ", color = "Source Population")+
     theme(
       axis.title = element_text(size = 14),
@@ -365,11 +364,11 @@ library(ggplot2)
 library(ggeffects)
 plot_Qmod1 <- ggpredict(mod_MR1, terms = c("LogColony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
 ##FINAL Q10 Plot##
-#plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ logMass + Source.pop)
-plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blue", "dark orange"))+
-  geom_point(data = AA_MR1, aes(x = LogColony_mass, y = Q10, color = Source.pop), inherit.aes = FALSE)+
-  ylab(bquote(italic("Q")["10"]*" Reaction Rate"))+
-  xlab(bquote("Colony Mass (Ln"*" grams)"))+
+#plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ LN(Mass) + Source.pop)
+plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.15, colors = c("cadet blue", "dark orange"))+
+  geom_point(data = AA_MR1, aes(x = LogColony_mass, y = Q10, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
+  ylab(bquote("Acute Thermal Sensitivity of Metabolic Rate"))+
+  xlab(bquote("Colony Mass (ln"*" grams)"))+
   labs(color = "Source Population")+
   theme_classic()+
   theme(
@@ -378,7 +377,8 @@ plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.1, colors = c("cadet blu
     axis.text = element_text(size = 10)
   )
 
-
+#Use for italics:  ylab(bquote(italic("Q")["10"]*" Reaction Rate"))+
+  
 
 
 ###### additional ###  
