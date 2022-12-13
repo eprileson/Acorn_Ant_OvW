@@ -1,10 +1,18 @@
 #######
 ############ Acorn Ant OvW - MR Batch Processing ############
 ###
-setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/MetabolicRate/Eric_OvW")
+
+#install / load packages for reading exp files from Sable ExpeData
+install.packages("remotes")
+remotes::install_github("hawkmoth/sablebase")
+install.packages("zoo")
+library(zoo)
+library(SableBase)
 
 library(lubridate)
 library(car)
+
+setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/MetabolicRate/Eric_OvW")
 
 #read in data
 dat_ovw.3c <- read.csv("AA_labels_edits.csv")
@@ -44,12 +52,6 @@ for(i in 1:dim(dat_ovw.3c)[1]) { #for every row in the data set,
 #check that the two columns have the merged gillibrator data
 dat_ovw.3c[1:25,]
 
-#install / load packages for reading exp files from Sable ExpeData
-install.packages("remotes")
-remotes::install_github("hawkmoth/sablebase")
-install.packages("zoo")
-library(zoo)
-library(SableBase)
 
 # list all files in the folder / from the working dir
 files = dir(pattern="exp") #find all files in directory that have "exp"
@@ -127,7 +129,7 @@ dat.sum[1:27,]
 setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/MetabolicRate/Eric_OvW")
 write.csv(dat.sum, "AA_MR_Summary_Stats.new.csv")
 
-
+## did not do, additional experimental data wrangling
 setwd("C:/Users/sarah/Box/DiamondLabResearch/Research/VCardui_Ontogeny_2021/SED_Analyses")
 
 # write.csv(dat.sum, "VCB_MR_Summary_Stats.csv")
@@ -158,7 +160,21 @@ write.csv(at.short, "AA_MR_cases.csv")
 
 ##################################################################
 ##################################################################
-## MR data analysis - 
+## MR data analysis -
+
+#install and load packages
+library(ggplot2)
+library(nlme)
+library(glmmTMB)
+library(car)
+library(DHARMa) 
+library(visreg)
+library(ggeffects)
+library(dplyr)
+library(emmeans)
+
+
+
 setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/scripts")
 AA_MR <- read.csv("AA_MR_Summary_Stats.csv", header = TRUE)
 head(AA_MR)
@@ -201,7 +217,6 @@ hist(AA_MR1$Log.10MeanMR) #pretty good, log transformed approaches normal
 
 #basic graph to show trend of mass on mean MR w/ source pop
 #removed NA's using the notation of only including non-NAs in the dataset (see first ggplot arg)
-library(ggplot2)
 ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Log.10MeanMR, color = Source.pop))+
   geom_point()+
   geom_smooth(method = "lm", se = TRUE, level = 0.95)+
@@ -218,7 +233,6 @@ ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Log.10M
   )
 
 #basic plot to show Q10s
-library(ggplot2)
 ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Q10, color = Source.pop))+
   geom_point()+
   geom_smooth(method = "lm", se = TRUE, level = 0.68)+
@@ -239,8 +253,13 @@ ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Log.10Colony_mass, y = Q10, co
 # y3 (urban / 4 deg = -3.661369)
 # y4 (urban / 10 deg = -3.575597)
 
+#colors for data viz
+my_colorsMR <- c("cadetblue", "darkorange")
+names(my_colorsMR) <- levels(AA_MR1$Source.pop)
+my_colorsMR1 <- c("cadetblue", "darkorange")
+names(my_colorsMR1) <- levels(mr_df$Source.pop)
+
 #basic plot to show different test temps and mean MR
-library(ggplot2)
 ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Test.Temp, y = Log.10MeanMR, color = Source.pop)) +
          geom_point(aes(colour = factor(Source.pop)),size = 7, stat = 'summary', fun.y = 'mean') +
          geom_errorbar(stat = 'summary', fun.data = 'mean_se', 
@@ -259,19 +278,9 @@ ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Test.Temp, y = Log.10MeanMR, c
          geom_segment(aes(x = 4, y = -3.679414, xend = 10, yend = -3.585731))+
            geom_segment(aes(x = 4, y = -3.661369, xend = 10, yend = -3.575597))+
            
-#colors for data viz
-my_colorsMR <- c("cadetblue", "darkorange")
-names(my_colorsMR) <- levels(AA_MR1$Source.pop)
-my_colorsMR1 <- c("cadetblue", "darkorange")
-names(my_colorsMR1) <- levels(mr_df$Source.pop)
-
 
 ##Part 4: Model Construction
 #Focal Model: MR ~ mass + source*temp
-library(nlme)
-install.packages('TMB', type = 'source')
-library(glmmTMB)
-library(car)
 mod_MR<-lme(LogMeanMR ~ LogColony_mass + Source.pop*Test.Temp, random = ~1|Colony_ID, data=AA_MR1)
 
 #FINAL models
@@ -282,9 +291,8 @@ mod_MR1 <- glmmTMB(Q10 ~ LogColony_mass + Source.pop +
 mod_MR2 <- glmmTMB(LogMeanMR ~ LogColony_mass + Source.pop*facet +
                      (1 | Col_Season), data = AA_MR1)
 
-###5 Model Diagnostics:
-library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
-
+###5 Model Diagnostics: 
+#use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
 simOutput4 <- simulateResiduals(fittedModel = mod_MR1, plot = F)
 plot(simOutput4)  #looks good from qqplot and residuals
 
@@ -293,13 +301,11 @@ simOutput5 <- simulateResiduals(fittedModel = mod_MR2, plot = F) #qqplot looks g
 diagnose(mod_MR2) #error w/ small eigen values and large coefficients detected
 
 #plot basic modeled relationship to see if it matches expl graphics
-library(visreg)
 visreg(mod_MR2)
 
 
 #Part 6: statistical / hypothesis testing
 #summary stats
-library(car)
 summary(mod_MR2)
 Anova(mod_MR2, type="III") #0.645, p = 0.422 #test temp and colony mass are sign. predictors, source pop is not (p = 0.8118)
 
@@ -308,7 +314,6 @@ summary(mod_MR1) #Q10 model
 Anova(mod_MR1, type = "III") #chisq = 0.923, P = 0.337
 
 # Pairwise tests
-library(emmeans)
 #Q10 emmeans test, w/ backtransformation
 Qmests <- emmeans(mod_MR1, pairwise~LogColony_mass + Source.pop, adjust = "tukey")
 summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
@@ -316,9 +321,6 @@ summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
 ##Part 7: Plotting Model Output
 #
 #Q10 plot using ggpredict; modeled 
-library(ggeffects)
-library(ggplot2)
-library(dplyr)
 plot_MRmod1 <- ggpredict(mod_MR2, terms =c("LogColony_mass", 
                                            "Source.pop", "facet"), 
                          allow.new.levels = TRUE, ci.lvl = 0.95)
@@ -341,7 +343,7 @@ plot(plot_MRmod1, show.title=F, alpha = 0.05)+
     axis.text = element_text(size = 10)
   )+facet_grid(~ facet)
 
-#try 2 w AL's help FINAL PLOT!!!
+#try #2 w AL's help FINAL PLOT!!!
 #make quick label df
 fac_labels <- c('4' = "4° C", '10' = "10° C")
                         
@@ -359,10 +361,10 @@ fac_labels <- c('4' = "4° C", '10' = "10° C")
       axis.title = element_text(size = 14),
       axis.text = element_text(size = 10)
     ) + facet_wrap(~ facet, labeller = as_labeller(fac_labels))
-
-library(ggplot2)
-library(ggeffects)
+  
+#alternate prediction modeling
 plot_Qmod1 <- ggpredict(mod_MR1, terms = c("LogColony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
+
 ##FINAL Q10 Plot##
 #plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ LN(Mass) + Source.pop)
 plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.15, colors = c("cadet blue", "dark orange"))+
@@ -382,6 +384,7 @@ plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.15, colors = c("cadet bl
 
 
 ###### additional ###  
+###Not used for OvW testing ###
   
 #Calculating Q10 vals for model + Graphics
   install.packages("respirometry")
@@ -390,7 +393,7 @@ plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.15, colors = c("cadet bl
   
 #Evolved MR: for each site origin, what is the response of MR across the urbanization gradient?
   Q10_val <- Q10(R1 = , R2 = , T1 = 4, T2 = 10) #returns Q10; = 
-  Q10 calc <- (R1/R2)^(10/R2-R1)
+  Q10_calc <- (R1/R2)^(10/R2-R1)
   
 #for loop to try and calc Q10 and add new column to csv file
 
