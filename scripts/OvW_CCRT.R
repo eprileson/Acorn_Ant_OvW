@@ -8,6 +8,7 @@ library(tidyr)
 library(lubridate)
 library(ggplot2)
 library(ggeffects)
+library(emmeans)
 library(car)
 library(visreg)
 library(nlme)
@@ -39,12 +40,12 @@ ccrt$Collection_date <- as.factor(ccrt$Collection_date)
 class(ccrt$Collection_date)
 levels(ccrt$Collection_date) #early, mid, late
 
-#change name to col season
+#change name of date variable to col season
 colnames(ccrt) <- c("Colony_ID", "Ind_ant", "Site", "Date", "CCRT_min", "Treatment", "Col_Season", "Worker_count")
 head(ccrt)
 
-#change date to ymd format for R
-ccrt$Date <- ymd(ccrt$Date)
+#ORIGINAL SCRIPT: change date to ymd format for R + check
+#ccrt$Date <- ymd(ccrt$Date)
 #ccrt$Collection_date <- ymd(ccrt$Collection_date) #only if we don't use factor for date
 
 #change ccrt to seconds, change name, round digits to nearest whole #
@@ -63,7 +64,7 @@ hist(ccrt$CCRT_sec) #large rightward skew;
 #try log transformed
 hist(log(ccrt$CCRT_sec)) #little better, but now skew is flipped, so still not norm
 
-#remove colonies with sample size <= 5
+#remove colonies with sample size <= 6
 ccrt <- ccrt[-c(42,188:189,294,552:555),] #colony 6951 U, colony 5619, colony 5260, colony 7783
 
 ### Part 3: Exploratory Graphics ##
@@ -96,10 +97,6 @@ head(col_means2)
 col_means2$Site <- as.factor(col_means2$Site)
 class(col_means2$Site)
 
-#summary of raw data for CCRT colony means
-summary(col_means2[c(3,7:8,10:11,15:16,26,29:32,35:41),6]) #meanU = 650.4, medianU = 732, min = 61, max = 1344
-summary(col_means2[c(1:2,4:6,9,12:14,17:25,27:28,33:34),6]) #mean R = 646.9, median R = 644.5,min = 72, max = 1585
-
 #create a plot with colony averages so that you can use for data viz later to show
 #the variance amongst all sites
 first1 <- ggplot(col_means2, aes(x = Treatment, y = CCRT_sec, shape = Site))+
@@ -120,10 +117,6 @@ first1 + geom_point(data = ccrt, aes(x = Treatment, y = CCRT_sec), size = 7,colo
     axis.text = element_text(size = 10)
   )
 
-#create colors for Sites
-mySite_colors <- c("#2196F3","#4CAF50","#F44336", "#FA28FF", "#FFEB3B")
-names(mySite_colors) <- levels(col_means2$Site)
-
 ### Part 4: Initial model construction ###
 
 #construct generalized mixed effect model using glmer() with gaussian distribution since the data 
@@ -131,19 +124,20 @@ names(mySite_colors) <- levels(col_means2$Site)
 #random effects of colony ID due to non-independence of those factors and nested
 #collection date's interaction with source to control for possible interactions
 
-#make full GLMM model w/ glmer
+#make full GLMM model 
 mod_ccrt1 <- glmmTMB(CCRT_sec ~ Treatment + (1 | Colony_ID), 
                    data = ccrt, family = genpois(link = "log"))
 
-#model refit 1 - FINAL MODEL - use more flexible glmmTMB
+#model refit 1 - use more flexible glmmTMB
 mod_control1 <- glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS")) #may not be needed
 mod_ccrt2 <- glmmTMB(CCRT_sec ~ Treatment + (1 | Colony_ID) + (1 | Col_Season),
                      data = ccrt, family = genpois(link = "log"))
-##original model: glmmTMB(CCRT_sec ~ Treatment + (1 | Colony_ID) + (1 | Collection_date*Treatment))
-
+##glmmTMB(CCRT_sec ~ Treatment + (1 | Colony_ID) + (1 | Collection_date*Treatment))
+#model refit #2 basic w/ poisson dist
 mod_ccrt3 <- glmmTMB(CCRT_sec ~ Treatment + (1 | Colony_ID) + (1 | Col_Season),
                      data = ccrt, family = poisson(link = "log"))
-#FINAL MODEL following model comparison and diagnostics
+
+#model refit #3 = FINAL MODEL following model comparison and diagnostics
 mod_ccrt4 <- glmmTMB(CCRT_sec ~ Treatment + (1 | Colony_ID) + (1 | Col_Season),
                      data = ccrt, family = nbinom1(link = "log"))
 
@@ -197,7 +191,6 @@ summary(bt_model) #rural treatment estimate = 472 (SE = 89.8),
 ### Part 7 - Plotting model output ###
 
 #make object from emmeans that can work w/ ggplot for figure
-library(magrittr)
 bt_df <- bt_model$emmeans %>%
   confint() %>%
   as.data.frame()
@@ -205,6 +198,10 @@ bt_df <- bt_model$emmeans %>%
 #make upper and lower SEs (manually calculated from summary of emmeans)
 upper.SEc <- c(644.2, 649.6)
 lower.SEc <- c(507.8, 504.4)
+
+#colors to use for graphics
+my_colors1 <- c("cadetblue", "darkorange")
+names(my_colors1) <- levels(col_means2$Treatment) #matches colors to Rural and Urban
 
 #graph w/ emmeans model (to get error bars that match accurately from the backtransformed model)
 ggplot(bt_df, aes(x = Treatment, y = response))+
@@ -223,8 +220,8 @@ ggplot(bt_df, aes(x = Treatment, y = response))+
   )
 
 #plot modeled relationships (alternate)
-plot_mod1 <- ggpredict(mod_ccrt2, terms = c("Treatment", "Collection_date")) #predicted values
-plot_mod1base <- ggpredict(mod_ccrt2, terms = c("Treatment"))
+plot_mod1 <- ggpredict(mod_ccrt4, terms = c("Treatment", "Collection_date")) #predicted values
+plot_mod1base <- ggpredict(mod_ccrt4, terms = c("Treatment"))
 
 #base plot w/o jittered colony averages
 plot(plot_mod1base)+
@@ -255,12 +252,9 @@ ggplot(plot_mod1, aes(x, y = predicted))+
     axis.title = element_text(size = 12),
     axis.text = element_text(size = 10)
   )
-#colors to use for graphics
-my_colors1 <- c("cadetblue", "darkorange")
-names(my_colors1) <- levels(col_means2$Treatment) #matches colors to Rural and Urban
 
 ##
-### END ###
+### END ######
 ##
 
 

@@ -2,17 +2,19 @@
 #### CT max data
 
 #Packages and Libraries
-install.packages("reporter")
-library(reporter)
 library(dplyr)
-library(ggplot2)
+library(tidyr)
+library(plyr)
 library(lubridate)
+library(ggplot2)
+library(ggeffects)
+library(emmeans)
 library(car)
+library(visreg)
 library(nlme)
 library(lme4)
 library(glmmTMB)
 library(magrittr)
-library(tidyr)
 library(reshape2)
 library(RColorBrewer)
 library(viridis)
@@ -66,7 +68,6 @@ col_means <- aggregate(CTmax_C ~ Colony_ID + Treatment + Site + Col_Season,
                         data = ctmax, mean)
 
 #round the colmeans to nearest 0.5
-library(plyr)
 col_means$CTmax_C <- round_any(col_means$CTmax_C, 0.5) #round digits to nearest 0.5
 
 #avg colonies by their CTmax
@@ -86,11 +87,6 @@ first + geom_point(data = ctmax, aes(x = Treatment, y = CTmax_C), colour = "red"
                    fill = "white", stroke = 1, stat = 'summary', fun.y = 'mean',inherit.aes = FALSE)+
   geom_errorbar(data = ctmax, aes(x = Treatment, y = CTmax_C), stat = 'summary', fun.data = 'mean_se', 
                 width=0.05, fun.args = list(mult = 1), inherit.aes = FALSE)
-
-
-#create colors for Sites
-mySite_colors1 <- c("#2196F3","#4CAF50","#F44336", "#FA28FF", "#FFEB3B")
-names(mySite_colors1) <- levels(col_means2$Site)
 
 
 ### Part 4: Initial model construction ###
@@ -115,9 +111,7 @@ mod4 <- glmmTMB(CTmax_C ~ Treatment + (1 | Colony_ID) + (1 | Col_Season),
                 data = ctmax)
 
 #plot model to see if matches expl graphics
-library(visreg)
 visreg(mod4)
-
 
 ### Part 5: Model diagnostics ###
 
@@ -146,7 +140,7 @@ summary(mod4) #urban est = 1.2796 deg C higher than Rural; SE = 0.5124
 
 library(car)
 #hypothesis testing using analysis of deviance
-Anova(mod4, type = "III")  #chisq - Treatment = 6.24, p = 0.013, .ns.
+Anova(mod4, type = "III")  #chisq - Treatment = 6.24, p = 0.013
 
 library(emmeans) 
 #need to do pairwise comparison
@@ -159,7 +153,6 @@ ct_mod #estimate: TreatmentRural = 45.3, SE= 0.270; TreatmentUrb = +0.06 higher,
 #plot modeled relationships
 
 #change the emmeans object to data frame; use for final plot graphics
-library(magrittr)
 ct_df <- ct_mod$emmeans %>%
   confint() %>%
   as.data.frame()
@@ -167,6 +160,10 @@ ct_df <- ct_mod$emmeans %>%
 #make upper and lower SEs; manually calculated from emmeans from mod4
 upper.SE <- c(45.468, 46.772)
 lower.SE <- c(44.332, 45.628)
+
+#add ind colors for ctmax
+my_colors2 <- c("cadetblue", "darkorange")
+names(my_colors2) <- levels(ctmax$Treatment)
 
 #make plot with the emmeans to get correct SEs that have been backtransformed
 ## FINAL PLOT = ggemmeans_final.jpeg in Box
@@ -185,8 +182,7 @@ ggplot(ct_df, aes(x = Treatment, y= emmean))+
     axis.text = element_text(size = 10)
   )
 
-#alternate graph - using basic predict
-library(ggeffects)
+#alternate graphs - using basic predict
 plot.mod <- ggpredict(mod2, terms = c("Treatment", "Collection_date"), ci.lvl = 0.68)
 
 #predict function w/ model
@@ -209,8 +205,6 @@ plot(plot.mod_base)+
 
 #plot graph; use the combined ggplot layers w model first from ggpredict, then
 #add in the jittered points from the data exploration
-library(viridis)
-
 ggplot(plot.mod, aes(x, y = predicted))+
   geom_jitter(data = col_means, aes(x = Treatment, y = CTmax_C, color = Collection_date), 
               width = 0.2, height = 0, inherit.aes = FALSE)+
@@ -227,9 +221,6 @@ ggplot(plot.mod, aes(x, y = predicted))+
     axis.text = element_text(size = 10)
   )
 
-#add ind colors for ctmax
-my_colors2 <- c("cadetblue", "darkorange")
-names(my_colors2) <- levels(ctmax$Treatment)
 
 ###
 #make pub quality graphic - use tiff() function w/ 480 x 480 pixel size and resolution of 300 ppi
