@@ -1,6 +1,29 @@
 ################
-#####################
+##################### Acorn Ant Overwintering #####
+### Count Data ###
 ##demographic change / survival count post winter ##
+
+#Packages and Libraries
+library(dplyr)
+library(tidyr)
+library(plyr)
+library(lubridate)
+library(ggplot2)
+library(ggeffects)
+library(emmeans)
+library(car)
+library(visreg)
+library(nlme)
+library(lme4)
+library(glmmTMB)
+library(magrittr)
+library(reshape2)
+library(RColorBrewer)
+library(viridis)
+library(puniform)
+library(knitr) 
+library(readxl)
+library(cowplot)
 
 #read in data set
 setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/scripts")
@@ -37,7 +60,7 @@ plot(Collection_date ~ Source.pop, data = count) #rural collected at start and e
 #shows urban pops have had bigger change in survival than rural
 hist(count$Worker.loss)
 
-#Alternate method: wrangle data to long form to show pop change over time on X ~ source
+####Alternate method: wrangle data to long form to show pop change over time on X ~ source
 count1 <- read.csv("OvW_count.csv")
 head(count1)
 #change column name so that the starting pop (beg) is on left and time goes left to right
@@ -56,8 +79,6 @@ colnames(count1) <- c("Colony_ID", "Source.pop", "Beginning", "End", "Brood_coun
 head(count1)
 
 #pivot the data longer so that we can show the change over time with the data set
-library(magrittr)
-library(tidyr)
 count1 <- count1 %>%
   pivot_longer(c("Beginning", "End"), names_to = "Time", values_to = "Worker.pop")
 
@@ -66,7 +87,6 @@ class(count1$Time)
 
 
 #exploratory graphics: (worker pop ~ time*source.pop)
-library(ggplot2)
 ggplot(count1, aes(x = Time, y = Worker.pop, colour = Source.pop))+
   geom_errorbar(stat = 'summary', fun.data = 'mean_se', 
                 width=0.05, fun.args = list(mult = 1))+
@@ -83,8 +103,8 @@ ggplot(count1, aes(x = Time, y = Worker.pop, colour = Source.pop))+
     axis.text = element_text(size = 10)
   )
 
-#calculate median starting pop urban v rural - TidyR
-#OR base
+#calculate median starting pop urban v rural
+#base
 medR <- median(count[c(1:9, 31:42, 45:47),3]) #rural median = 48.5
 sd(count[c(1:9, 31:42, 45:47),3]) #rural sd = 26.325
 mean(count[c(1:9, 31:42, 45:47),3]) #rural mean = 45.25
@@ -104,9 +124,6 @@ mean(count[c(10:30, 43:44),4]) #urban mean = 14.04
 
 
 ##Part 4: Model development
-library(glmmTMB)
-library(nlme)
-
 #first model for worker loss over 4 mo
 mod.control2 <- glmmTMBControl(optimizer=optim,
                                optArgs=list(method="BFGS"))
@@ -135,17 +152,15 @@ change.mod <- glmmTMB(Worker.pop ~ Time*Source.pop + (1 | Colony_ID) + (1 | Col_
 
 
 #plot basic modeled relationship to see if it matches expl graphics
-library(visreg)
 visreg(prop.surv1)
 
 ## Part 5: Model diagnostics
-#QQplots, residuals, AIC
+#QQplots, residuals
 ##Diagnostics: warning msgs for models - show model convergence problem w/ small eigen value problems
 diagnose(change.mod) #removed the interaction effect due to extremely large SD
 
 diagnose(prop.surv1)  #really good fit both w/ DHARMa and diagnose()
 
-library(DHARMa) #use simulated diagnostic modeling since we have a glmm; works with both glmer and glmmTMB objects
 simOutput3 <- simulateResiduals(fittedModel = prop.surv1, plot = F)
 plot(simOutput3)
 
@@ -158,7 +173,6 @@ summary(prop.surv1) #urban = -.093 lower proportion workers left SE = 0.19
 summary(change.mod) #time = -1.31, urbanpop = 0.226, time*urbanpop = -0.172
 
 # log lik statistic tests for model significance
-library(car)
 Anova(prop.surv1, type = "III") #chisq = 0.236; p = 0.627
 Anova(change.mod, type = "III") #source pop = chisq = 67.34, p = 0.399
 #time = 396.03, p < 2e-16***, sourcepop*time = chisq = 3.64, p = 0.056
@@ -166,14 +180,11 @@ Anova(change.mod, type = "III") #source pop = chisq = 67.34, p = 0.399
 #backtransform log-linked data:
 #using emmeans for figure and backtransformed values
 #emmeans
-library(emmeans)
 change.em <- emmeans(change.mod, pairwise ~ Time*Source.pop, transform = "response", adjust = "fdr")
 change.em
 ##Part 7: Plotting Modeled Output
 #
 #Make follow up plot of modeled results
-library(ggeffects)
-library(ggplot2)
 prop.graph <- ggpredict(prop.surv1, terms = c("Source.pop"), 
                         type = "fe", allow.new.levels = TRUE,ci.lvl = 0.68, width=0.05, title = FALSE)
   
@@ -202,7 +213,6 @@ my_colors4 <- c("cadetblue", "cadet blue", "dark orange", "dark orange")
 names(my_colors4) <- levels(c(count1$Source.pop, count1$Time))
 
 #plot graphs
-library(ggplot2)
 #change
 change <- ggplot(change_df, aes(x = Time, y= rate))+  
   geom_point(data = count1, aes(x = Time, y = Worker.pop, color = Source.pop), 
@@ -220,8 +230,6 @@ change <- ggplot(change_df, aes(x = Time, y= rate))+
     axis.title = element_text(size = 14),
     axis.text = element_text(size = 10)
   )
-
-#total lost
 
 #workers lost as a proportion of starting size
 prop <- ggplot(prop.graph, aes(x, y = predicted))+
@@ -241,7 +249,6 @@ prop <- ggplot(prop.graph, aes(x, y = predicted))+
   ) 
 
 #make graphs into combined facets
-library(cowplot)
 change
 total
 prop
