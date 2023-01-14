@@ -173,7 +173,7 @@ library(ggeffects)
 library(dplyr)
 library(emmeans)
 
-
+## Part 1: load data and set working dir
 
 setwd("C:/Users/prile/Box/Research/AcornAntOverwintering2021/Acorn_Ant_OvW/Acorn_Ant_OvW/scripts")
 AA_MR <- read.csv("AA_MR_Summary_Stats.csv", header = TRUE)
@@ -320,18 +320,18 @@ summary(Qmests) #contrast = 0.174; rural = 1.22, urban = 1.40
 
 ##Part 7: Plotting Model Output
 #
-#Q10 plot using ggpredict; modeled 
+#Mean MR plot using ggpredict; modeled 
 plot_MRmod1 <- ggpredict(mod_MR2, terms =c("LogColony_mass", 
                                            "Source.pop", "facet"), 
-                         allow.new.levels = TRUE, ci.lvl = 0.95)
+                         ci.lvl = 0.95, colors = c("cadetblue", "darkorange"))
 
 #FINAL PREDICTED mean MR plot w/ raw data avg MR values
 #raw
 #variable names
 variable_names <- list("4" = "4°C","10" = "10°")
-
-plot(plot_MRmod1, show.title=F, alpha = 0.05)+
-  geom_point(data = AA_MR1, aes(x = LogColony_mass,y = LogMeanMR, color = Source.pop), inherit.aes = FALSE)+
+#first try; not used, since label is off
+plot(plot_MRmod1, show.title=F, alpha = 0.10)+
+  geom_point(data = AA_MR1, aes(x = LogColony_mass,y = LogMeanMR, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
   scale_colour_manual(values = c("cadetblue", "darkorange"))+
   theme_classic()+
   ylab(bquote("Metabolic Rate (Ln"*" CO"["2"]*" ppm)"))+
@@ -341,18 +341,19 @@ plot(plot_MRmod1, show.title=F, alpha = 0.05)+
   theme(
     axis.title = element_text(size = 14),
     axis.text = element_text(size = 10)
-  )+facet_grid(~ facet)
+  )+facet_grid(~ facet, labeller = as_labeller(fac_labels))
 
 #try #2 w AL's help FINAL PLOT!!!
 #make quick label df
 fac_labels <- c('4' = "4° C", '10' = "10° C")
                         
   ggplot(data = plot_MRmod1,aes(x, y = predicted, group = group))+
+    geom_smooth(method = "lm", se = FALSE, aes(colour = group), size = 0.75)+
     geom_ribbon(aes(ymin= conf.low, ymax= conf.high, y= NULL, fill = group), alpha = 0.15)+
-    guides (fill = F)+
-    geom_smooth(method = "lm",se = FALSE, aes(colour = group), size = 0.75) +
+    guides(fill = FALSE)+
     geom_point(data = AA_MR1, aes(x = LogColony_mass,y = LogMeanMR, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
     scale_colour_manual(values = c("cadetblue", "darkorange"))+
+    scale_fill_manual(values = c("cadetblue", "darkorange"))+ #added to correct the fill color match
     theme_classic()+
     ylab(bquote("Metabolic Rate (ln"*" CO"["2"]*" ppm)"))+
     xlab(bquote("Colony Mass (ln"*" grams)"))+ 
@@ -361,12 +362,32 @@ fac_labels <- c('4' = "4° C", '10' = "10° C")
       axis.title = element_text(size = 14),
       axis.text = element_text(size = 10)
     ) + facet_wrap(~ facet, labeller = as_labeller(fac_labels))
-  
-#alternate prediction modeling
+    
+    
+#Q10 model prediction
 plot_Qmod1 <- ggpredict(mod_MR1, terms = c("LogColony_mass", "Source.pop"), ci.lvl = 0.95) #predicted values
 
 ##FINAL Q10 Plot##
 #plot the predicted model w/ smoothed lines at 95% CI, (Q10 ~ LN(Mass) + Source.pop)
+ggplot(plot_Qmod1, aes(x, y = predicted, group = group))+
+  geom_ribbon(aes(ymin= conf.low, ymax= conf.high, y= NULL, fill = group), alpha = 0.15)+
+  geom_smooth(method = "lm",se = FALSE, aes(colour = group), size = 0.75)+
+  guides(fill = FALSE)+
+  scale_colour_manual(values = c("cadetblue", "darkorange"))+
+  scale_fill_manual(values = c("cadetblue", "darkorange"))+ #added to correct the fill color match
+  geom_point(data = AA_MR1, aes(x = LogColony_mass, y = Q10, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
+  ylab(bquote("Acute Thermal Sensitivity of Metabolic Rate"))+
+  xlab(bquote("Colony Mass (ln"*" grams)"))+
+  labs(color = "Source Population")+
+  theme_classic()+
+  theme(
+    title = element_text(size = 14),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 10)
+  )
+
+## Old Q10 plot; bands not same color as FINAL plot
+
 plot(plot_Qmod1, show.title=F, facet = FALSE, alpha = 0.15, colors = c("cadet blue", "dark orange"))+
   geom_point(data = AA_MR1, aes(x = LogColony_mass, y = Q10, color = Source.pop), alpha = 0.5, inherit.aes = FALSE)+
   ylab(bquote("Acute Thermal Sensitivity of Metabolic Rate"))+
