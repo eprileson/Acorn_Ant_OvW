@@ -284,7 +284,6 @@ ggplot(AA_MR1[!is.na(AA_MR1$Test.Temp),], aes(x = Test.Temp, y = Log.10MeanMR, c
 mod_MR<-lme(LogMeanMR ~ LogColony_mass + Source.pop*Test.Temp, random = ~1|Colony_ID, data=AA_MR1)
 
 #FINAL models
-modMR_control <- glmmTMBControl(optimizer = optim, optArgs = list(method = "BFGS"))
 mod_MR1 <- glmmTMB(Q10 ~ LogColony_mass + Source.pop + 
                      (1 | Col_Season),
                    data = AA_MR1, family = gaussian(link = "identity"))
@@ -306,7 +305,7 @@ visreg(mod_MR2)
 
 #Part 6: statistical / hypothesis testing
 #summary stats
-summary(mod_MR2)
+summary(mod_MR2) #facet10 = temperature factor est = 0.210, se = 0.0259
 Anova(mod_MR2, type="III") #0.645, p = 0.422 #test temp and colony mass are sign. predictors, source pop is not (p = 0.8118)
 
 #Q10 hypothesis test: Does Q10 differ between urban and rural w/ urban having higher Q10 rate?

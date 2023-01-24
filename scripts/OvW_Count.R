@@ -174,7 +174,7 @@ summary(change.mod) #time = -1.31, urbanpop = 0.226, time*urbanpop = -0.172
 
 # log lik statistic tests for model significance
 Anova(prop.surv1, type = "III") #chisq = 0.236; p = 0.627
-Anova(change.mod, type = "III") #source pop = chisq = 67.34, p = 0.399
+Anova(change.mod, type = "III") #source pop = chisq = 0.710, p = 0.399
 #time = 396.03, p < 2e-16***, sourcepop*time = chisq = 3.64, p = 0.056
 
 #backtransform log-linked data:
@@ -209,7 +209,7 @@ lower.SEg <- c(28.92, 7.74, 35.94, 8.11)
 my_colors3 <- c("cadetblue", "darkorange")
 names(my_colors3) <- levels(count$Source.pop)
 
-my_colors4 <- c("cadetblue", "cadet blue", "dark orange", "dark orange")
+my_colors4 <- c("cadetblue", "cadetblue", "darkorange", "darkorange")
 names(my_colors4) <- levels(c(count1$Source.pop, count1$Time))
 
 #plot graphs
@@ -234,11 +234,11 @@ change <- ggplot(change_df, aes(x = Time, y= rate))+
 #workers lost as a proportion of starting size
 prop <- ggplot(prop.graph, aes(x, y = predicted))+
   geom_point(data = count, aes(x = Source.pop, y = worker.prop, color = Source.pop), 
-             position = position_jitterdodge(jitter.width = 0.5, dodge.width = NULL), inherit.aes = FALSE)+
+             position = position_jitterdodge(jitter.width = 0.5, dodge.width = NULL), alpha = 0.5, inherit.aes = FALSE)+
   geom_point(colour = my_colors3, size = 7)+
   geom_errorbar(aes(ymin = lower.SEp, ymax = upper.SEp), fun.data = 'mean_se', 
                 width=0.05, fun.args = list(mult = 1), colour = my_colors3)+
-  scale_color_manual(values = c("black","black"))+
+  scale_color_manual(values = c("cadetblue", "darkorange"))+
   labs(y="Proportion of Workers Remaining", x = "Source Population", tag = "B")+
   guides(color = "none")+  #change back if need legend
   theme_classic()+
@@ -250,7 +250,6 @@ prop <- ggplot(prop.graph, aes(x, y = predicted))+
 
 #make graphs into combined facets
 change
-total
 prop
 plot_grid(change, prop, ncol = 2, nrow = 1, 
           rel_widths = c(.5, .5, .5))   #use 1028 x 555 px aspect ratio

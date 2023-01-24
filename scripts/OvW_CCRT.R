@@ -209,8 +209,10 @@ ggplot(bt_df, aes(x = Treatment, y = response))+
              stat = 'summary', fun.y = 'mean')+
   geom_errorbar(aes(ymin = lower.SEc, ymax = upper.SEc), #uses upper and lower CI
                 width=0.05, colour = my_colors1, fun.args = list(mult = 1))+
-  geom_jitter(data = col_means2, aes(x = Treatment, y = CCRT_sec),
-              width = 0.2, height = 0, size = 2, inherit.aes = FALSE)+
+  geom_jitter(data = col_means2, aes(x = Treatment, y = CCRT_sec, color = Treatment),
+              width = 0.2, height = 0, size = 2, alpha = 0.5, inherit.aes = FALSE)+
+  scale_color_manual(values = c("cadetblue", "darkorange"))+
+  guides(color = "none")+
   labs(y = "CCRT (sec)", x = "Source Population")+
   theme_classic()+
   theme(

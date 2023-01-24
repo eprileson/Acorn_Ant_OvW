@@ -168,11 +168,13 @@ names(my_colors2) <- levels(ctmax$Treatment)
 #make plot with the emmeans to get correct SEs that have been backtransformed
 ## FINAL PLOT = ggemmeans_final.jpeg in Box
 ggplot(ct_df, aes(x = Treatment, y= emmean))+
-  geom_jitter(data = col_means, aes(x = Treatment, y = CTmax_C), 
-              width = 0.2, height = 0, size = 2, inherit.aes = FALSE)+
+  geom_jitter(data = col_means, aes(x = Treatment, y = CTmax_C, color = Treatment), 
+              width = 0.2, height = 0, size = 2, alpha = 0.5, inherit.aes = FALSE)+
+  scale_color_manual(values = c("cadetblue", "darkorange"))+
   geom_point(colour = my_colors2, size = 7)+
   geom_errorbar(aes(ymin = lower.SE, ymax = upper.SE), #uses upper and lower CI
                 width=0.05, colour = my_colors2, fun.args = list(mult = 1))+
+  guides(color = "none")+
   ylab(bquote(CT[max]*" °C"))+
   xlab("Source Population")+
   theme_classic()+
