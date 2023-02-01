@@ -225,10 +225,10 @@ change <- ggplot(change_df, aes(x = Time, y= rate))+
   labs(y="Worker Number", x = "Census Points", tag = "A", color = "Source Population")+
   theme_classic()+
   theme(
-    title = element_text(size = 14),
+    title = element_text(size = 16),
     plot.tag = element_text(size = 16, hjust = 0.5),
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 10)
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
   )
 
 #workers lost as a proportion of starting size
@@ -243,9 +243,9 @@ prop <- ggplot(prop.graph, aes(x, y = predicted))+
   guides(color = "none")+  #change back if need legend
   theme_classic()+
   theme(
-    title = element_text(size = 14),
+    title = element_text(size = 16),
     plot.tag = element_text(size = 16, hjust = 0.5),
-    axis.text = element_text(size = 10)
+    axis.text = element_text(size = 14)
   ) 
 
 #make graphs into combined facets

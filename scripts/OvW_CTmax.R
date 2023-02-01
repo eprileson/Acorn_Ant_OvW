@@ -179,9 +179,9 @@ ggplot(ct_df, aes(x = Treatment, y= emmean))+
   xlab("Source Population")+
   theme_classic()+
   theme(
-    title = element_text(size = 14),
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 10)
+    title = element_text(size = 16),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14)
   )
 
 #alternate graphs - using basic predict
