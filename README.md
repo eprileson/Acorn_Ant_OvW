@@ -11,6 +11,7 @@ R code for each physiological measure under overwintering conditions
 - Critical Thermal Maximum (CTmax)
 
 ## Metadata for each file
+description of variables within each dataset
 
 ### CCRT
 - CCRT csv file in minutes; code changes to seconds for modeling as an integer
