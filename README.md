@@ -33,6 +33,6 @@ description of variables within each dataset
 - mean MR RA = avg metabolic rate in ppm CO2 rolling average (not used in analyses)
 - Chamber index = chamber where colony was; chamber 8 = control or blank container
 - Q10 = thermal sensitivity quotient of the two metabolic rates at two temperatures raised to the 10th power divided by the temperature difference
-- Colletion date = similar to collection season factor from ccrt and ctmax files above
+- Collection date = similar to collection season factor from ccrt and ctmax files above
 - Source.pop = factor variable
 - Colony ID is randomly generated value
